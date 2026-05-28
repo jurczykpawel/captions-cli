@@ -12,7 +12,8 @@
   "dependencies": {
     "@captions-cli/core": "workspace:*",
     "@captions-cli/engine-hf": "workspace:*",
-    "astro": "^5.7.0"
+    "astro": "^5.7.0",
+    "gsap": "^3.13.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0"

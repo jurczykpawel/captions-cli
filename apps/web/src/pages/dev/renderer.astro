@@ -1,0 +1,52 @@
+---
+// Dev-only manual harness for the caption renderer e2e. Not linked anywhere.
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
+    <title>renderer harness</title>
+  </head>
+  <body style="margin:0;background:#000">
+    <div id="mount" style="position:relative"></div>
+    <script>
+      import { buildCaptionStage } from '../../lib/captions-renderer';
+      import { PRESETS } from '@captions-cli/engine-hf/presets';
+      import type { Cue } from '@captions-cli/core/pure';
+
+      const cues: Cue[] = [
+        {
+          id: 'cue-0',
+          text: 'hello there world',
+          startTime: 0,
+          endTime: 1.5,
+          words: [
+            { text: 'hello', startTime: 0, endTime: 0.5 },
+            { text: 'there', startTime: 0.5, endTime: 1.0 },
+            { text: 'world', startTime: 1.0, endTime: 1.5 },
+          ],
+        },
+      ];
+
+      const stage = buildCaptionStage({
+        parent: document.getElementById('mount')!,
+        cues,
+        build: PRESETS['text'],
+        preset: {
+          fontColor: '#ffffff',
+          highlightColor: '#ffca28',
+          upcomingColor: '#9aa3af',
+          fontSize: 64,
+        },
+        width: 1080,
+        height: 1920,
+        captionTopPercent: 50,
+      });
+
+      (window as any).__cap = stage;
+      (window as any).__capReady = true;
+    </script>
+  </body>
+</html>
