@@ -1,0 +1,82 @@
+import type { Dict } from './index';
+
+export const pl: Dict = {
+  meta: {
+    title: 'Captions — wypal napisy na wideo, w 100% w przeglądarce',
+    description:
+      'Dodaj animowane napisy słowo po słowie do swoich filmów lokalnie. Pliki nie opuszczają Twojego urządzenia. Za darmo, bez uploadu, bez konta.',
+  },
+  hero: {
+    badge: '100% lokalnie · bez uploadu',
+    title: 'Dodaj napisy do wideo bez wysyłania go gdziekolwiek',
+    subtitle:
+      'Wrzuć klip, dostań animowane napisy słowo po słowie i wyeksportuj gotowy MP4. Wszystko liczy się na Twoim komputerze, tu w przeglądarce.',
+    cta: 'Dodaj wideo',
+    secondary: 'Jak to działa',
+  },
+  privacy: {
+    heading: 'Twoje wideo zostaje na Twoim urządzeniu',
+    local: 'Każdy etap dzieje się lokalnie w przeglądarce, na Twoim komputerze.',
+    noUpload: 'Twoje wideo nigdy nie trafia na żaden serwer.',
+    noStore: 'Nie przechowujemy Twoich plików ani transkrypcji. Zamkniesz kartę i znikają.',
+  },
+  steps: {
+    heading: 'Trzy kroki',
+    one: 'Wybierz wideo z urządzenia (do 10 minut).',
+    two: 'Transkrybujemy je lokalnie, a Ty wybierasz styl napisów.',
+    three: 'Eksportuj gotowy MP4 z wypalonymi napisami.',
+  },
+  upload: {
+    drop: 'Przeciągnij wideo tutaj',
+    browse: 'albo kliknij, by wybrać plik',
+    hint: 'MP4, MOV lub WebM · do 10 minut',
+    tooLong: 'To wideo jest dłuższe niż 10 minut. Użyj krótszego klipu.',
+    invalid: 'Ten plik nie wygląda na wideo. Spróbuj MP4, MOV lub WebM.',
+    selected: 'Wybrano',
+  },
+  presets: {
+    heading: 'Styl napisów',
+    free: 'Za darmo',
+    basic: 'Odblokuj mailem',
+    premium: 'Premium',
+    locked: 'Zablokowane',
+    unlock: 'Odbierz darmowy pakiet',
+    buy: 'Kup premium',
+  },
+  email: {
+    heading: 'Odblokuj dwa kolejne style, za darmo',
+    desc: 'Zostaw maila, a odblokujemy dwa dodatkowe style napisów. Bez spamu, wypiszesz się kiedy chcesz.',
+    placeholder: 'ty@przyklad.pl',
+    submit: 'Odblokuj style',
+    submitting: 'Odblokowuję…',
+    success: 'Odblokowane. Korzystaj ze stylów!',
+    error: 'Coś poszło nie tak. Spróbuj ponownie.',
+    invalid: 'Podaj poprawny adres email.',
+    waiting: 'Chwila, weryfikuję…',
+    consentPrefix: 'Akceptuję',
+    tos: 'Regulamin',
+    and: 'oraz',
+    privacy: 'Politykę prywatności',
+  },
+  exportUi: {
+    heading: 'Eksport',
+    button: 'Eksportuj MP4',
+    rendering: 'Renderuję…',
+    cancel: 'Anuluj',
+    done: 'Gotowe',
+    download: 'Pobierz MP4',
+    unsupported:
+      'Eksport w przeglądarce wymaga Chrome lub Edge. Otwórz tę stronę w jednej z nich.',
+  },
+  transcribe: {
+    loadingModel: 'Ładuję model mowy (jednorazowe pobranie)…',
+    transcribing: 'Transkrybuję wideo lokalnie…',
+    ready: 'Transkrypcja gotowa',
+  },
+  footer: {
+    tagline: 'Lokalne, prywatne napisy od TechSkills Academy.',
+    tos: 'Regulamin',
+    privacy: 'Prywatność',
+    source: 'Kod na GitHubie',
+  },
+};

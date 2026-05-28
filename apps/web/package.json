@@ -1,0 +1,20 @@
+{
+  "name": "@captions-cli/web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@captions-cli/core": "workspace:*",
+    "@captions-cli/engine-hf": "workspace:*",
+    "astro": "^5.7.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0"
+  }
+}

@@ -14,7 +14,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import type { Word, Cue } from './types';
+import type { Word } from './types';
 
 const MODEL_DIR = path.join(os.homedir(), '.cache', 'whisper.cpp');
 const DEFAULT_MODEL = 'ggml-base.bin';
@@ -144,52 +144,6 @@ export async function transcribeWithOpenAI(audioPath: string, language: string):
   }));
 }
 
-/**
- * Group flat word stream into caption cues. Splits on:
- *  1. Punctuation at the end of a word (`.`, `!`, `?`, `,`).
- *  2. Long silence (>0.7s) between consecutive words.
- *  3. Cue size cap: max 5 words OR max 3 seconds of duration.
- */
-export function groupWordsIntoCues(words: Word[]): Cue[] {
-  const cues: Cue[] = [];
-  let current: Word[] = [];
-  let cueStart = 0;
-  const MAX_WORDS = 5;
-  const MAX_DURATION = 3;
-  const SILENCE_THRESHOLD = 0.7;
-
-  const flush = (i: number) => {
-    if (current.length === 0) return;
-    const last = current[current.length - 1];
-    cues.push({
-      id: `cue-${cues.length}`,
-      text: current.map((w) => w.text).join(' '),
-      startTime: cueStart,
-      endTime: last.endTime,
-      words: [...current],
-    });
-    current = [];
-  };
-
-  words.forEach((w, i) => {
-    if (current.length === 0) {
-      cueStart = w.startTime;
-      current.push(w);
-      return;
-    }
-    const prev = current[current.length - 1];
-    const silence = w.startTime - prev.endTime;
-    const duration = w.endTime - cueStart;
-    const tooLong = current.length >= MAX_WORDS || duration >= MAX_DURATION;
-    const punctEnd = /[.!?,;:]$/.test(prev.text);
-    const longGap = silence > SILENCE_THRESHOLD;
-    if (tooLong || punctEnd || longGap) {
-      flush(i);
-      cueStart = w.startTime;
-    }
-    current.push(w);
-  });
-  flush(words.length);
-
-  return cues;
-}
+// Cue grouping lives in ./cues (pure, shared with the web app). Re-exported
+// here so existing CLI imports keep working.
+export { groupWordsIntoCues } from './cues';

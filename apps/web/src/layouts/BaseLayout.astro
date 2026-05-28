@@ -1,0 +1,110 @@
+---
+import '../styles/tokens.css';
+import { getDict, localePath, type Locale } from '../i18n';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = getDict(locale);
+const other: Locale = locale === 'en' ? 'pl' : 'en';
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{t.meta.title}</title>
+    <meta name="description" content={t.meta.description} />
+    <meta property="og:title" content={t.meta.title} />
+    <meta property="og:description" content={t.meta.description} />
+    <meta name="theme-color" content="#0b0d10" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container site-header__inner">
+        <a class="brand" href={localePath(locale)}>
+          <span class="brand__mark" aria-hidden="true">CC</span> Captions
+        </a>
+        <nav class="site-nav" aria-label="Language">
+          <a href={localePath(other)} hreflang={other} rel="alternate">{other.toUpperCase()}</a>
+        </nav>
+      </div>
+    </header>
+
+    <main><slot /></main>
+
+    <footer class="site-footer">
+      <div class="container site-footer__inner">
+        <span class="faint">{t.footer.tagline}</span>
+        <span class="footer-links">
+          <a href={localePath(locale, 'terms')}>{t.footer.tos}</a>
+          <a href={localePath(locale, 'privacy')}>{t.footer.privacy}</a>
+          <a href="https://github.com/jurczykpawel/captions-cli" rel="noopener">{t.footer.source}</a>
+        </span>
+      </div>
+    </footer>
+
+    <style>
+      .site-header {
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        background: color-mix(in srgb, var(--bg) 85%, transparent);
+        backdrop-filter: blur(8px);
+        z-index: 10;
+      }
+      .site-header__inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 60px;
+      }
+      .brand {
+        color: var(--text);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        text-decoration: none;
+      }
+      .brand__mark {
+        display: inline-grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: var(--accent);
+        color: var(--accent-ink);
+        font-size: 0.78rem;
+        font-weight: 900;
+      }
+      .site-nav a {
+        color: var(--text-muted);
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+      .site-nav a:hover { color: var(--text); text-decoration: none; }
+      main { flex: 1; }
+      .site-footer {
+        border-top: 1px solid var(--border);
+        margin-top: 4rem;
+        padding-block: 1.5rem;
+      }
+      .site-footer__inner {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1.5rem;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.85rem;
+      }
+      .footer-links { display: inline-flex; gap: 1.25rem; }
+      .footer-links a { color: var(--text-muted); }
+    </style>
+  </body>
+</html>

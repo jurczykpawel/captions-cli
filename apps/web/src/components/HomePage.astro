@@ -1,0 +1,133 @@
+---
+import { getDict, type Locale } from '../i18n';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = getDict(locale);
+---
+
+<section class="hero container">
+  <span class="badge">{t.hero.badge}</span>
+  <h1>{t.hero.title}</h1>
+  <p class="hero__sub muted">{t.hero.subtitle}</p>
+</section>
+
+<section class="container app" id="app">
+  <!-- Upload card: the entry point. Wired by client scripts in later steps. -->
+  <div class="card upload" id="upload-card" data-upload>
+    <input type="file" id="file-input" accept="video/*" hidden />
+    <label class="upload__zone" for="file-input" data-dropzone>
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 16V4m0 0L7 9m5-5l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <strong>{t.upload.drop}</strong>
+      <span class="muted">{t.upload.browse}</span>
+      <span class="faint upload__hint">{t.upload.hint}</span>
+    </label>
+    <p class="upload__error" id="upload-error" role="alert" aria-live="assertive" hidden></p>
+  </div>
+
+  <!-- Workspace appears after a valid video is chosen (later steps). -->
+  <div class="workspace" id="workspace" hidden></div>
+</section>
+
+<section class="container privacy">
+  <div class="card privacy__card">
+    <h2>{t.privacy.heading}</h2>
+    <ul class="privacy__list">
+      <li><span class="dot ok" aria-hidden="true"></span>{t.privacy.local}</li>
+      <li><span class="dot ok" aria-hidden="true"></span>{t.privacy.noUpload}</li>
+      <li><span class="dot ok" aria-hidden="true"></span>{t.privacy.noStore}</li>
+    </ul>
+  </div>
+</section>
+
+<section class="container steps" id="how">
+  <h2>{t.steps.heading}</h2>
+  <ol class="steps__grid">
+    <li><span class="steps__n">1</span><p>{t.steps.one}</p></li>
+    <li><span class="steps__n">2</span><p>{t.steps.two}</p></li>
+    <li><span class="steps__n">3</span><p>{t.steps.three}</p></li>
+  </ol>
+</section>
+
+<style>
+  .hero { padding-block: clamp(2.5rem, 7vw, 5rem) 1.5rem; text-align: center; }
+  .badge {
+    display: inline-block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--teal);
+    border: 1px solid color-mix(in srgb, var(--teal) 40%, transparent);
+    background: color-mix(in srgb, var(--teal) 12%, transparent);
+    border-radius: 999px;
+    padding: 0.3rem 0.8rem;
+    margin-bottom: 1.25rem;
+  }
+  .hero h1 { font-size: clamp(2rem, 5.5vw, 3.4rem); max-width: 18ch; margin-inline: auto; }
+  .hero__sub { font-size: clamp(1rem, 2.2vw, 1.2rem); max-width: 52ch; margin: 1.1rem auto 0; }
+
+  .app { padding-block: 1rem; }
+  .upload { padding: 0; overflow: hidden; }
+  .upload__zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    text-align: center;
+    padding: clamp(2rem, 6vw, 3.5rem);
+    cursor: pointer;
+    color: var(--text);
+    border: 2px dashed var(--border-strong);
+    border-radius: var(--radius);
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+  }
+  .upload__zone:hover, .upload__zone[data-drag] {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 6%, transparent);
+  }
+  .upload__zone svg { color: var(--accent); margin-bottom: 0.5rem; }
+  .upload__hint { font-size: 0.85rem; }
+  .upload__error { color: var(--danger); padding: 0 1.25rem 1.25rem; font-size: 0.9rem; }
+
+  .privacy { padding-block: 2.5rem; }
+  .privacy__card { max-width: 720px; margin-inline: auto; }
+  .privacy__list { list-style: none; display: grid; gap: 0.75rem; margin-top: 1rem; }
+  .privacy__list li { display: flex; gap: 0.65rem; align-items: flex-start; color: var(--text-muted); }
+  .dot { width: 0.6rem; height: 0.6rem; border-radius: 50%; margin-top: 0.5rem; flex: none; }
+  .dot.ok { background: var(--ok); }
+
+  .steps { padding-block: 1rem 2rem; }
+  .steps h2 { text-align: center; margin-bottom: 1.5rem; }
+  .steps__grid {
+    list-style: none;
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+  .steps__grid li {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 1.25rem;
+    display: flex;
+    gap: 0.85rem;
+    align-items: flex-start;
+  }
+  .steps__n {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 800;
+    flex: none;
+  }
+  .steps__grid p { color: var(--text-muted); }
+</style>

@@ -6,11 +6,14 @@
   "license": "MIT",
   "type": "module",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
     "captions": "bun run --filter @captions-cli/cli captions",
     "build": "bun run --filter @captions-cli/cli build",
+    "web:dev": "bun run --filter @captions-cli/web dev",
+    "web:build": "bun run --filter @captions-cli/web build",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
