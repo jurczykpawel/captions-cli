@@ -18,6 +18,8 @@ export interface RunWhisperOptions {
   audio: Float32Array;
   language: 'en' | 'pl';
   model?: WhisperModelSize;
+  /** Override device detection (e.g. force 'wasm' in headless tests). */
+  device?: 'webgpu' | 'wasm';
   onProgress?: (p: TranscribeProgress) => void;
 }
 
@@ -35,7 +37,7 @@ function detectDevice(): 'webgpu' | 'wasm' {
 export async function runWhisper(opts: RunWhisperOptions): Promise<Word[]> {
   const size = opts.model ?? 'base';
   const modelId = WHISPER_MODELS[size];
-  const device = detectDevice();
+  const device = opts.device ?? detectDevice();
   const key = `${modelId}:${device}`;
 
   if (!cache || cache.key !== key) {
@@ -57,7 +59,9 @@ export async function runWhisper(opts: RunWhisperOptions): Promise<Word[]> {
   const out = await cache.transcriber(opts.audio, {
     return_timestamps: 'word',
     language: opts.language,
-    chunk_length_s: 30,
+    // 29, not 30: transformers.js bug clusters all word timestamps at 29.98s
+    // on a 30s chunk boundary (transformers.js#1358).
+    chunk_length_s: 29,
     stride_length_s: 5,
   });
   return mapChunksToWords(out.chunks ?? []);

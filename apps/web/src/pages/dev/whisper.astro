@@ -1,0 +1,51 @@
+---
+// Dev-only real-whisper harness for e2e. Not linked anywhere.
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
+    <title>whisper harness</title>
+  </head>
+  <body>
+    <div id="status">idle</div>
+    <script>
+      import { decodeAudioMono16k } from '../../lib/media';
+      import { runWhisper } from '../../lib/whisper';
+      import { groupWordsIntoCues } from '@captions-cli/core/pure';
+
+      const w = window as unknown as Record<string, unknown>;
+      const status = document.getElementById('status')!;
+
+      (async () => {
+        try {
+          const res = await fetch('/test/speech.mp4');
+          const file = new File([await res.blob()], 'speech.mp4', { type: 'video/mp4' });
+          const audio = await decodeAudioMono16k(file);
+          const words = await runWhisper({
+            audio,
+            language: 'en',
+            model: 'tiny',
+            device: 'wasm',
+            onProgress: (p) =>
+              (status.textContent = p.stage + (p.fraction ? ` ${Math.round(p.fraction * 100)}%` : '')),
+          });
+          const cues = groupWordsIntoCues(words);
+          w.__whisper = {
+            wordCount: words.length,
+            cueCount: cues.length,
+            text: words.map((x) => x.text).join(' ').toLowerCase(),
+            firstStart: words[0]?.startTime ?? null,
+            lastEnd: words[words.length - 1]?.endTime ?? null,
+          };
+          status.textContent = 'done';
+        } catch (e) {
+          w.__whisperError = e instanceof Error ? e.message : String(e);
+          status.textContent = 'err:' + w.__whisperError;
+        }
+      })();
+    </script>
+  </body>
+</html>
