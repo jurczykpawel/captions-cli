@@ -1,0 +1,13 @@
+node_modules
+dist
+*.bun-build
+*.log
+.DS_Store
+*.mp4
+*.mov
+*.wav
+.git
+.github
+.vscode
+README.md
+install.sh

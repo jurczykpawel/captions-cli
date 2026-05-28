@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>captions-cli · preset designer</title>
+<meta name="viewport" content="width=1280, initial-scale=1">
+<style>
+  :root {
+    --bg: #0e0f13;
+    --panel: #161821;
+    --line: #262936;
+    --text: #e6e8ef;
+    --muted: #8b8fa3;
+    --accent: #f59e0b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
+    background: var(--bg); color: var(--text); display: grid;
+    grid-template-columns: 380px 1fr; min-height: 100vh;
+  }
+  header { padding: 16px 20px; border-bottom: 1px solid var(--line); grid-column: 1/3; }
+  header h1 { margin: 0 0 4px; font-size: 18px; }
+  header p { margin: 0; color: var(--muted); font-size: 13px; }
+  .panel { background: var(--panel); border-right: 1px solid var(--line); padding: 16px; overflow-y: auto; height: calc(100vh - 64px); }
+  .stage { padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+  fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin: 0 0 14px; }
+  legend { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; padding: 0 6px; }
+  label { display: grid; grid-template-columns: 110px 1fr; gap: 8px; align-items: center; margin: 6px 0; font-size: 13px; }
+  label.full { grid-template-columns: 1fr; }
+  input, select, textarea {
+    background: #0a0b10; color: var(--text); border: 1px solid var(--line); border-radius: 6px;
+    padding: 6px 8px; font: inherit; font-size: 13px; width: 100%;
+  }
+  input[type="color"] { padding: 2px; height: 30px; cursor: pointer; }
+  input[type="number"] { font-variant-numeric: tabular-nums; }
+  input[type="range"] { accent-color: var(--accent); padding: 0; }
+  textarea { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; min-height: 200px; resize: vertical; }
+  button {
+    background: var(--accent); color: #1a1a1a; border: 0; border-radius: 6px;
+    padding: 8px 14px; font: inherit; font-weight: 600; cursor: pointer;
+  }
+  button.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+  button:hover { filter: brightness(1.1); }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .preview-frame {
+    aspect-ratio: 9/16; max-width: 360px; background:
+      radial-gradient(circle at 30% 50%, #3a1f5c 0%, #141428 70%);
+    border-radius: 12px; position: relative; overflow: hidden;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  }
+  .preview-stage { position: absolute; inset: 0; display: flex; justify-content: center; }
+  .preview-line {
+    position: absolute; text-align: center;
+    font-family: "Inter", system-ui, sans-serif;
+    user-select: none; pointer-events: none;
+    will-change: transform;
+  }
+  .preview-line .word { margin: 0 0.18em; vertical-align: baseline; }
+  .preview-meta { color: var(--muted); font-size: 12px; margin-top: 8px; }
+  .stage-title { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 8px; }
+  .export-block { display: grid; gap: 12px; max-width: 720px; }
+  pre { background: #0a0b10; border: 1px solid var(--line); border-radius: 8px; padding: 12px; overflow: auto; max-height: 400px; margin: 0; font-size: 12px; }
+  details { background: #0a0b10; border: 1px solid var(--line); border-radius: 8px; padding: 0; }
+  details > summary { padding: 8px 12px; cursor: pointer; color: var(--muted); user-select: none; }
+  details[open] > summary { border-bottom: 1px solid var(--line); }
+  details > div { padding: 12px; }
+  .help { color: var(--muted); font-size: 11px; margin-top: 4px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>captions-cli · preset designer</h1>
+    <p>Design an ASS preset visually. Export <code>.ts</code> → drop into <code>packs/premium/</code> or load via <code>--preset-file</code>. 100% offline, runs from <code>file://</code>.</p>
+  </header>
+
+  <aside class="panel">
+    <fieldset>
+      <legend>Identity</legend>
+      <label>Slug <input id="slug" type="text" value="my-style" pattern="[a-z0-9-]+"></label>
+      <label>Description <input id="description" type="text" value="My custom caption style"></label>
+      <label>Tier
+        <select id="tier">
+          <option value="free">free</option>
+          <option value="basic">basic</option>
+          <option value="premium" selected>premium</option>
+        </select>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Typography</legend>
+      <label>Font size <input id="fontSize" type="number" min="20" max="200" value="64"></label>
+      <label>Bold
+        <select id="bold"><option value="-1" selected>yes</option><option value="0">no</option></select>
+      </label>
+      <label>Italic
+        <select id="italic"><option value="0" selected>no</option><option value="-1">yes</option></select>
+      </label>
+      <label>Letter spacing <input id="spacing" type="number" min="0" max="20" step="0.5" value="0"></label>
+      <label>Transform
+        <select id="transform">
+          <option value="none" selected>none</option>
+          <option value="uppercase">UPPERCASE</option>
+          <option value="lowercase">lowercase</option>
+        </select>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Colors (3-state karaoke)</legend>
+      <label>Past <input id="fontColor" type="color" value="#ffffff"></label>
+      <label>Active <input id="highlightColor" type="color" value="#f59e0b"></label>
+      <label>Upcoming <input id="upcomingColor" type="color" value="#8e8e9c"></label>
+      <p class="help">"Past" is the default colour for unspoken text in 2-state mode. Upcoming reads as "not yet spoken" only when the CLI gets <code>--upcoming</code>.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Outline & shadow (default state)</legend>
+      <label>Border style
+        <select id="borderStyle">
+          <option value="1" selected>1 — outline + shadow</option>
+          <option value="4">4 — opaque box (full-line bg)</option>
+        </select>
+      </label>
+      <label>Outline width <input id="outlineWidth" type="number" min="0" max="30" value="6"></label>
+      <label>Outline color <input id="outlineColor" type="color" value="#000000"></label>
+      <label>Shadow depth <input id="shadowDepth" type="number" min="0" max="20" value="0"></label>
+      <p class="help">BorderStyle 4 paints a solid bar across the full caption line — the active-state colour swap then changes the bar bg. Use for news-ticker / pill-shadow looks.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Active word effects</legend>
+      <label>Active scale
+        <input id="activeScale" type="range" min="100" max="160" value="115">
+        <span class="help" id="activeScaleVal">115%</span>
+      </label>
+      <label>Active outline <input id="activeBord" type="number" min="0" max="30" value="6"></label>
+      <label>Active outline → highlight color
+        <input id="activeOutlineHighlight" type="checkbox">
+      </label>
+      <label>Active fill → dark
+        <input id="activeFillDark" type="checkbox">
+      </label>
+      <label>Underline <input id="activeUnderline" type="checkbox"></label>
+      <p class="help">Defaults = Hormozi-style (amber fill + black outline + scale 1.15). Tick "fill → dark" + "outline → highlight" for the pill stamp look. Avoid both highlight-outline + amber fill — same colour everywhere reads as a blob.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Position</legend>
+      <label>Vertical % from top
+        <input id="position" type="range" min="0" max="100" value="65">
+        <span class="help" id="positionVal">65%</span>
+      </label>
+      <p class="help">65 = cross-platform safe zone (avoids TT/IG/YT chrome).</p>
+    </fieldset>
+  </aside>
+
+  <main class="stage">
+    <section>
+      <p class="stage-title">Live preview — active word in the middle</p>
+      <div class="preview-frame" id="previewFrame">
+        <div class="preview-stage">
+          <div class="preview-line" id="previewLine"></div>
+        </div>
+      </div>
+      <p class="preview-meta">CSS approximation of how the active state renders. Real ASS render via <code>captions video.mp4 --preset &lt;slug&gt;</code>.</p>
+    </section>
+
+    <section class="export-block">
+      <p class="stage-title">Generated TypeScript preset</p>
+      <pre id="tsOutput"></pre>
+      <div class="row">
+        <button id="downloadTs">Download .ts file</button>
+        <button id="copyTs" class="ghost">Copy code</button>
+        <button id="copyCli" class="ghost">Copy CLI command</button>
+      </div>
+      <details>
+        <summary>How to use the exported file</summary>
+        <div>
+          <ol>
+            <li>Click <strong>Download .ts file</strong> — saves <code>&lt;slug&gt;.ts</code>.</li>
+            <li>Drop the file into <code>packs/premium/</code> in your captions-cli checkout (gitignored, won't get committed).</li>
+            <li>Run <code>./scripts/install-pack.sh premium &amp;&amp; bun run build</code>.</li>
+            <li>Or use the CLI's <code>--preset-file ./my-style.ts</code> to load directly without copying.</li>
+          </ol>
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <script src="ass-to-css.js"></script>
+  <script src="template.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

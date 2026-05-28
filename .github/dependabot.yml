@@ -1,0 +1,17 @@
+version: 2
+# No JS package-manager version-updates: this is a Bun workspaces monorepo,
+# and Dependabot's npm ecosystem doesn't update bun.lock (PRs then fail CI's
+# `bun install --frozen-lockfile`), while its `bun` ecosystem still skips the
+# lockfile in workspace repos (dependabot/dependabot-core#14223). The few JS
+# deps (typescript, @types/bun, pinned hyperframes) are updated by hand;
+# Dependabot security alerts cover vulnerabilities independently of this file.
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly

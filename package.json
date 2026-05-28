@@ -1,0 +1,23 @@
+{
+  "name": "captions-cli",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Burn word-level karaoke captions onto videos. Local Whisper + pluggable render engine. Zero SaaS.",
+  "license": "MIT",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "captions": "bun run --filter @captions-cli/cli captions",
+    "build": "bun run --filter @captions-cli/cli build",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "bun": ">=1.1.0"
+  }
+}

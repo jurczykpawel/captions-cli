@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# captions — friendly wrapper around the captions-cli Docker image.
+#
+#   captions myvideo.mp4 --lang pl
+#
+# Pass a normal path to your video from anywhere; this mounts its folder
+# into the container and writes <name>-captioned.mp4 right next to it.
+# Override the image with CAPTIONS_IMAGE (e.g. ...:full for --engine hf).
+# Docs: https://github.com/jurczykpawel/captions-cli
+set -euo pipefail
+
+IMAGE="${CAPTIONS_IMAGE:-ghcr.io/jurczykpawel/captions-cli:slim}"
+
+if ! command -v docker >/dev/null 2>&1; then
+  echo "captions: Docker isn't installed. Get Docker Desktop:" >&2
+  echo "  https://www.docker.com/products/docker-desktop/" >&2
+  exit 1
+fi
+
+# Subcommands that need neither a file nor a mounted folder.
+case "${1:-}" in
+  ""|-h|--help)                   exec docker run --rm "$IMAGE" --help ;;
+  --list-presets|--list-engines)  exec docker run --rm "$IMAGE" "$@" ;;
+esac
+
+# The input video is the first argument that is an existing file.
+video=""
+for a in "$@"; do
+  if [ -f "$a" ]; then video="$a"; break; fi
+done
+if [ -z "$video" ]; then
+  echo "captions: couldn't find your video file in the arguments." >&2
+  echo "Try:  captions path/to/video.mp4 --lang en" >&2
+  exit 1
+fi
+
+dir="$(cd "$(dirname "$video")" && pwd)"
+base="$(basename "$video")"
+
+# Translate the host video path to its in-container path; pass everything
+# else through untouched.
+args=()
+for a in "$@"; do
+  if [ "$a" = "$video" ]; then args+=("/work/$base"); else args+=("$a"); fi
+done
+
+exec docker run --rm \
+  -v "$dir:/work" \
+  -v captions-cache:/data \
+  "$IMAGE" "${args[@]}"

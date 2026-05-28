@@ -1,0 +1,18 @@
+{
+  "name": "@captions-cli/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "captions": "./bin/captions-cli.ts"
+  },
+  "scripts": {
+    "captions": "bun run ./bin/captions-cli.ts",
+    "build": "bun build ./bin/captions-cli.ts --compile --outfile=../../dist/captions"
+  },
+  "dependencies": {
+    "@captions-cli/core": "workspace:*",
+    "@captions-cli/engine-ass": "workspace:*",
+    "@captions-cli/engine-hf": "workspace:*"
+  }
+}

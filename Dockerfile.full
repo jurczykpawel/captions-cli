@@ -1,0 +1,60 @@
+# Full image — supports BOTH `--engine ass` (default) and `--engine hf`.
+# Carries ffmpeg, whisper.cpp, Chromium-headless-shell, hyperframes,
+# and the compiled captions binary. Target image: ~1.6 GB.
+#
+# For ASS-only deployments (10x smaller image), use Dockerfile.slim.
+
+# ── Stage 1: build whisper.cpp from source ─────────────────────────────
+FROM debian:bookworm-slim AS whisper-build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential cmake git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /tmp
+RUN git clone --depth 1 --branch v1.7.4 https://github.com/ggerganov/whisper.cpp.git \
+    && cd whisper.cpp \
+    && cmake -B build -DGGML_NATIVE=OFF -DGGML_BLAS=OFF -DBUILD_SHARED_LIBS=OFF \
+    && cmake --build build -j --config Release --target whisper-cli
+
+# ── Stage 2: compile our standalone CLI binary with Bun ────────────────
+FROM oven/bun:1-debian AS cli-build
+WORKDIR /app
+COPY package.json bun.lock ./
+COPY packages/core/package.json ./packages/core/
+COPY packages/engine-ass/package.json ./packages/engine-ass/
+COPY packages/engine-hf/package.json ./packages/engine-hf/
+COPY packages/cli/package.json ./packages/cli/
+RUN bun install --frozen-lockfile
+COPY . .
+RUN cd packages/cli && bun build ./bin/captions-cli.ts --compile --outfile=/app/dist/captions
+
+# ── Stage 3: full runtime ──────────────────────────────────────────────
+# node:22-bookworm-slim is required because hyperframes 0.4 calls
+# util.styleText (Node 22+).
+FROM node:22-bookworm-slim AS runtime
+LABEL org.opencontainers.image.source=https://github.com/jurczykpawel/captions-cli
+LABEL org.opencontainers.image.description="Burn word-level karaoke captions onto videos (ASS + HF engines, full)."
+LABEL org.opencontainers.image.licenses=MIT
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ffmpeg \
+        curl \
+        chromium-headless-shell \
+        fonts-inter \
+        ca-certificates \
+    && npm install -g --omit=dev "hyperframes@^0.6.52" \
+    && npm cache clean --force \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt /tmp/* /root/.npm
+
+# Hyperframes' render workers read PRODUCER_HEADLESS_SHELL_PATH (see
+# hyperframes/dist/cli.js) to locate Chromium. Pointing at the apt
+# binary avoids puppeteer downloading its own arm64-incompatible build.
+ENV PRODUCER_HEADLESS_SHELL_PATH=/usr/bin/chromium-headless-shell
+
+COPY --from=whisper-build /tmp/whisper.cpp/build/bin/whisper-cli /usr/local/bin/
+COPY --from=cli-build /app/dist/captions /usr/local/bin/
+
+# Runs as root by design: one-shot CLI reading/writing the user's
+# bind-mounted /work and the model cache /data (see Dockerfile.slim).
+ENV HOME=/data
+WORKDIR /work
+ENTRYPOINT ["captions"]
+CMD ["--help"]

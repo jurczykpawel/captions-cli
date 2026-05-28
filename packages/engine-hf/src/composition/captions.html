@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: {{frameWidth}}px;
+        height: {{frameHeight}}px;
+        overflow: hidden;
+        background: {{backgroundColor}};
+        font-family:
+          'Inter',
+          -apple-system,
+          system-ui,
+          sans-serif;
+        color: #fff;
+      }
+      #video {
+        position: absolute;
+        inset: 0;
+        width: {{frameWidth}}px;
+        height: {{frameHeight}}px;
+        object-fit: cover;
+      }
+      #captions {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: {{captionTopPercent}}%;
+        padding: 0 80px;
+        text-align: center;
+        font-size: {{fontSize}}px;
+        font-weight: 800;
+        line-height: 1.2;
+        color: {{fontColor}};
+        pointer-events: none;
+      }
+      /* Default rounded pill behind the line. Outline-style presets
+         (e.g. `outline-pop`) opt out by setting `background: transparent`
+         in their own CSS block. */
+      #captions .caption-pill {
+        display: inline-block;
+        background-color: rgba(0, 0, 0, 0.7);
+        padding: 18px 28px;
+        border-radius: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="stage"
+      data-composition-id="captions"
+      data-start="0"
+      data-duration="{{durationSeconds}}"
+      data-width="{{frameWidth}}"
+      data-height="{{frameHeight}}"
+    >
+      <!-- Caption preset block. Lives INSIDE the composition `<div>`
+           because Hyperframes only loads the composition subtree —
+           literal `<style>` tags get stripped during render, but a
+           `<script>` that appends a `<style>` element to `<head>` at
+           runtime survives the strip. -->
+      {{captionPresetCssBlock}}
+
+      <video
+        id="video"
+        class="clip"
+        data-start="0"
+        data-duration="{{durationSeconds}}"
+        data-track-index="1"
+        src="{{videoUrl}}"
+        preload="auto"
+      ></video>
+
+      <div
+        id="captions"
+        class="clip"
+        data-start="0"
+        data-duration="{{durationSeconds}}"
+        data-track-index="3"
+      ></div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      function b64ToUtf8(b64) {
+        const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+        return new TextDecoder('utf-8').decode(bytes);
+      }
+
+      let cuesData = [];
+      try {
+        cuesData = JSON.parse(b64ToUtf8('{{cuesB64}}'));
+      } catch (e) {
+        console.error('captions: failed to parse cuesB64', e);
+      }
+
+      const captionsEl = document.getElementById('captions');
+      cuesData.forEach((cue, cueIdx) => {
+        const words = cue.words || [];
+        if (words.length === 0) return;
+        const wrap = document.createElement('span');
+        wrap.id = 'cue-' + cueIdx;
+        wrap.style.opacity = '0';
+        wrap.style.position = 'absolute';
+        wrap.style.left = '0';
+        wrap.style.right = '0';
+        const pill = document.createElement('span');
+        pill.className = 'caption-pill';
+        pill.id = 'cue-' + cueIdx + '-pill';
+        words.forEach((w, wIdx) => {
+          const span = document.createElement('span');
+          span.className = 'word word--upcoming';
+          span.id = 'cue-' + cueIdx + '-w-' + wIdx;
+          span.textContent = w.text;
+          pill.appendChild(span);
+        });
+        wrap.appendChild(pill);
+        captionsEl.appendChild(wrap);
+
+        const cueStart = words[0].startTime;
+        const cueEnd = words[words.length - 1].endTime;
+        tl.to('#cue-' + cueIdx, { opacity: 1, duration: 0.18 }, cueStart);
+        tl.to('#cue-' + cueIdx, { opacity: 0, duration: 0.15 }, cueEnd);
+
+        words.forEach((w, wIdx) => {
+          const sel = '#cue-' + cueIdx + '-w-' + wIdx;
+          tl.set(sel, { attr: { class: 'word word--active' } }, w.startTime);
+          tl.set(sel, { attr: { class: 'word word--past' } }, w.endTime);
+        });
+      });
+
+      // Preset-specific timeline tweens (scale bounces, etc).
+      try {
+        {{captionPresetTimelineJsBlock}}
+      } catch (e) {
+        console.error('captions: preset timelineJs error', e);
+      }
+
+      window.__timelines['captions'] = tl;
+    </script>
+  </body>
+</html>
