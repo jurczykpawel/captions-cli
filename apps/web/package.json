@@ -19,6 +19,7 @@
     "@huggingface/transformers": "^3.0.0"
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.9",
     "@playwright/test": "^1.52.0"
   }
 }

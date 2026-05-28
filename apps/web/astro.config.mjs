@@ -20,5 +20,8 @@ export default defineConfig({
   vite: {
     server: { headers: coiHeaders },
     preview: { headers: coiHeaders },
+    // transformers.js loads its own wasm/workers at runtime; pre-bundling it
+    // with esbuild breaks that in dev.
+    optimizeDeps: { exclude: ['@huggingface/transformers'] },
   },
 });
