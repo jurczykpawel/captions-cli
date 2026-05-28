@@ -1,0 +1,82 @@
+---
+// Dev-only export harness for e2e. Not linked anywhere.
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
+    <title>export harness</title>
+  </head>
+  <body>
+    <div id="status">idle</div>
+    <script>
+      import { buildCaptionStage } from '../../lib/captions-renderer';
+      import { getExportEngine } from '../../lib/export';
+      import { PRESETS } from '@captions-cli/engine-hf/presets';
+      import type { Cue } from '@captions-cli/core/pure';
+
+      const w = window as unknown as Record<string, unknown>;
+      const status = document.getElementById('status')!;
+
+      async function run() {
+        try {
+          const res = await fetch('/test/tiny.mp4');
+          const file = new File([await res.blob()], 'tiny.mp4', { type: 'video/mp4' });
+          const cues: Cue[] = [
+            {
+              id: 'cue-0',
+              text: 'hello world',
+              startTime: 0,
+              endTime: 1.5,
+              words: [
+                { text: 'hello', startTime: 0, endTime: 0.7 },
+                { text: 'world', startTime: 0.7, endTime: 1.5 },
+              ],
+            },
+          ];
+          const engine = getExportEngine();
+          if (!engine) {
+            w.__exportError = 'no supported engine';
+            status.textContent = 'no engine';
+            return;
+          }
+          w.__engineId = engine.id;
+          const result = await engine.export({
+            file,
+            width: 320,
+            height: 240,
+            durationSeconds: 2,
+            fps: 15,
+            buildStage: (parent) =>
+              buildCaptionStage({
+                parent,
+                cues,
+                build: PRESETS['text'],
+                preset: {
+                  fontColor: '#ffffff',
+                  highlightColor: '#ffca28',
+                  upcomingColor: '#9aa3af',
+                  fontSize: 36,
+                },
+                width: 320,
+                height: 240,
+                captionTopPercent: 70,
+              }),
+            onProgress: (f) => {
+              status.textContent = 'p:' + f.toFixed(2);
+            },
+          });
+          w.__exportResult = { size: result.blob.size, type: result.mimeType };
+          status.textContent = 'done:' + result.blob.size;
+        } catch (e) {
+          w.__exportError = e instanceof Error ? e.message : String(e);
+          status.textContent = 'err:' + w.__exportError;
+        }
+      }
+
+      run();
+    </script>
+  </body>
+</html>

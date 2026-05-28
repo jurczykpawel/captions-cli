@@ -13,7 +13,9 @@
     "@captions-cli/core": "workspace:*",
     "@captions-cli/engine-hf": "workspace:*",
     "astro": "^5.7.0",
-    "gsap": "^3.13.0"
+    "gsap": "^3.13.0",
+    "mediabunny": "^1.0.0",
+    "@zumer/snapdom": "^1.9.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0"
