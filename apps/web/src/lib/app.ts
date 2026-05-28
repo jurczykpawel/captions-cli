@@ -72,13 +72,31 @@ export function initApp() {
   let cues: Cue[] | null = null;
   let stage: CaptionStage | null = null;
   let currentSlug = 'text';
-  let pendingSlug: string | null = null;
+  let currentTier = 'free';
+  let pendingExport = false;
   let raf = 0;
 
   const tr = (section: string, key: string) => t[section]?.[key] ?? '';
   const fontSize = () => (meta ? Math.round(meta.height * 0.055) : 64);
   const presetInput = (): PresetInput => ({ ...COLORS, fontSize: fontSize() });
   const isUnlocked = () => localStorage.getItem(UNLOCK_KEY) === '1';
+
+  // Sample caption used to preview a style before the user has transcribed.
+  function exampleCues(): Cue[] {
+    const w: [string, number, number][] =
+      cfg.locale === 'pl'
+        ? [['Tak', 0, 0.5], ['będą', 0.5, 0.9], ['wyglądać', 0.9, 1.6], ['Twoje', 1.6, 2.1], ['napisy', 2.1, 2.8]]
+        : [['This', 0, 0.45], ['is', 0.45, 0.7], ['your', 0.7, 1.05], ['caption', 1.05, 1.7], ['style', 1.7, 2.4]];
+    return [
+      {
+        id: 'example',
+        text: w.map((x) => x[0]).join(' '),
+        startTime: 0,
+        endTime: w[w.length - 1][2],
+        words: w.map(([text, startTime, endTime]) => ({ text, startTime, endTime })),
+      },
+    ];
+  }
 
   function showUploadError(msg: string) {
     if (!uploadError) return;
@@ -108,9 +126,12 @@ export function initApp() {
     stagewrap!.style.aspectRatio = `${probe.width} / ${probe.height}`;
     uploadCard?.setAttribute('hidden', '');
     workspace!.removeAttribute('hidden');
-    presetStep?.setAttribute('hidden', '');
+    // Show the style picker right away so the user can preview styles on their
+    // video (example text) before transcribing. Export needs real captions.
+    presetStep?.removeAttribute('hidden');
     exportStep?.setAttribute('hidden', '');
     if (transcribeStatus) transcribeStatus.textContent = '';
+    previewPreset(currentSlug, currentTier);
   }
 
   function syncScale() {
@@ -120,13 +141,13 @@ export function initApp() {
     stage.stage.style.transform = `scale(${scale})`;
   }
 
-  function mountStage(slug: string) {
-    if (!meta || !cues) return;
+  function mountStage(slug: string, useCues: Cue[] | null = cues) {
+    if (!meta || !useCues || useCues.length === 0) return;
     if (stage) stage.destroy();
     const build = PRESETS[slug] ?? PRESETS['text'];
     stage = buildCaptionStage({
       parent: stagewrap!,
-      cues,
+      cues: useCues,
       build,
       preset: presetInput(),
       width: meta.width,
@@ -144,17 +165,27 @@ export function initApp() {
     });
   }
 
+  // Preview a style on the user's video. Uses example text before transcription,
+  // real captions after. Free to preview any bundled style; the email/buy gate
+  // is enforced at export time.
+  function previewPreset(slug: string, tier: string) {
+    const usingExample = !cues;
+    mountStage(slug, cues ?? exampleCues());
+    currentSlug = slug;
+    currentTier = tier;
+    if (usingExample && stage) {
+      stage.timeline.repeat(-1).repeatDelay(0.6);
+      stage.timeline.play();
+    }
+  }
+
   function selectPreset(slug: string, tier: string) {
+    // Premium styles aren't bundled in the web app; send to the buy/how-to page.
     if (tier === 'premium') {
       if (cfg.buyUrl) window.open(cfg.buyUrl, '_blank', 'noopener');
       return;
     }
-    if (tier === 'basic' && !isUnlocked()) {
-      pendingSlug = slug;
-      openEmailDialog();
-      return;
-    }
-    mountStage(slug);
+    previewPreset(slug, tier);
   }
 
   async function transcribe() {
@@ -186,8 +217,7 @@ export function initApp() {
       }
       cues = groupWordsIntoCues(words);
       setStatus(tr('transcribe', 'ready'));
-      mountStage(currentSlug);
-      presetStep?.removeAttribute('hidden');
+      mountStage(currentSlug); // real cues now; replaces the looping example
       exportStep?.removeAttribute('hidden');
     } catch (err) {
       setStatus(err instanceof Error ? err.message : String(err));
@@ -197,6 +227,16 @@ export function initApp() {
 
   async function exportVideo() {
     if (!file || !meta || !cues) return;
+    // Gate at export: premium needs purchase, basic needs an email unlock.
+    if (currentTier === 'premium') {
+      if (cfg.buyUrl) window.open(cfg.buyUrl, '_blank', 'noopener');
+      return;
+    }
+    if (currentTier === 'basic' && !isUnlocked()) {
+      pendingExport = true;
+      openEmailDialog();
+      return;
+    }
     const engine = getExportEngine();
     if (!engine) {
       if (exportStatus) exportStatus.textContent = tr('exportUi', 'unsupported');
@@ -263,9 +303,9 @@ export function initApp() {
       c.classList.remove('is-locked');
     });
     dialog?.close();
-    if (pendingSlug) {
-      mountStage(pendingSlug);
-      pendingSlug = null;
+    if (pendingExport) {
+      pendingExport = false;
+      void exportVideo();
     }
   }
 
