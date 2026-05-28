@@ -115,6 +115,10 @@ const label = (slug: string) =>
           <progress id="export-progress" max="1" value="0" hidden></progress>
           <a class="btn btn--ghost" id="download-link" hidden>{t.exportUi.download}</a>
           <p class="faint" id="export-status" aria-live="polite">{t.ws.exportNote}</p>
+          <div class="unlock-cta" id="unlock-cta" hidden>
+            <p id="unlock-text"></p>
+            <button class="btn btn--primary" id="unlock-btn" type="button"></button>
+          </div>
         </div>
       </div>
     </div>
@@ -234,6 +238,14 @@ const label = (slug: string) =>
 
   #export-progress { width: 100%; height: 8px; margin: 0.75rem 0; }
   #download-link { width: 100%; margin-bottom: 0.5rem; }
+  .unlock-cta {
+    margin-top: 0.85rem; padding: 0.85rem;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+  }
+  .unlock-cta p { font-size: 0.88rem; margin-bottom: 0.6rem; color: var(--text); }
+  .unlock-cta .btn { width: 100%; }
 
   .privacy { padding-block: 2.5rem; }
   .privacy__card { max-width: 720px; margin-inline: auto; }

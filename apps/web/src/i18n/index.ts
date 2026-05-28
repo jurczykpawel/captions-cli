@@ -47,6 +47,7 @@ export interface Dict {
     unsupported: string;
   };
   transcribe: { loadingModel: string; transcribing: string; ready: string };
+  unlock: { basicText: string; premiumText: string; mailBtn: string; buyBtn: string };
   ws: {
     generate: string;
     generating: string;

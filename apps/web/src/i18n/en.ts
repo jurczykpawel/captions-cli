@@ -73,6 +73,12 @@ export const en: Dict = {
     transcribing: 'Transcribing your video locally…',
     ready: 'Transcript ready',
   },
+  unlock: {
+    basicText: 'Your export has a watermark. Remove it free with your email.',
+    premiumText: 'This is a premium style. Unlock it to export without the watermark.',
+    mailBtn: 'Remove watermark (email)',
+    buyBtn: 'Unlock premium',
+  },
   ws: {
     generate: 'Generate captions',
     generating: 'Generating…',

@@ -11,6 +11,28 @@ import { definition as hormozi } from './hormozi';
 import { definition as outlinePop } from './outline-pop';
 import { definition as pill } from './pill';
 import { definition as popWord } from './pop-word';
+import { definition as bouncing } from './bouncing';
+import { definition as boxHighlight } from './box-highlight';
+import { definition as hormoziCyan } from './hormozi-cyan';
+import { definition as hormoziGreen } from './hormozi-green';
+import { definition as hormoziRed } from './hormozi-red';
+import { definition as hype } from './hype';
+import { definition as karaokeFill } from './karaoke-fill';
+import { definition as karaokeShadow } from './karaoke-shadow';
+import { definition as monoBlock } from './mono-block';
+import { definition as mrbeast } from './mrbeast';
+import { definition as neonCyan } from './neon-cyan';
+import { definition as neonPink } from './neon-pink';
+import { definition as neonYellow } from './neon-yellow';
+import { definition as newsTicker } from './news-ticker';
+import { definition as paperCutout } from './paper-cutout';
+import { definition as pillShadow } from './pill-shadow';
+import { definition as singleWord } from './single-word';
+import { definition as singleWordFade } from './single-word-fade';
+import { definition as singleWordPop } from './single-word-pop';
+import { definition as subtitleClassic } from './subtitle-classic';
+import { definition as underlineSweep } from './underline-sweep';
+import { definition as whisperMini } from './whisper-mini';
 
 export const DEFINITIONS: AssPresetDefinition[] = [
   cleanWhite,  // free
@@ -18,6 +40,28 @@ export const DEFINITIONS: AssPresetDefinition[] = [
   outlinePop,  // basic
   pill,  // basic
   popWord,  // basic
+  bouncing,  // premium
+  boxHighlight,  // premium
+  hormoziCyan,  // premium
+  hormoziGreen,  // premium
+  hormoziRed,  // premium
+  hype,  // premium
+  karaokeFill,  // premium
+  karaokeShadow,  // premium
+  monoBlock,  // premium
+  mrbeast,  // premium
+  neonCyan,  // premium
+  neonPink,  // premium
+  neonYellow,  // premium
+  newsTicker,  // premium
+  paperCutout,  // premium
+  pillShadow,  // premium
+  singleWord,  // premium
+  singleWordFade,  // premium
+  singleWordPop,  // premium
+  subtitleClassic,  // premium
+  underlineSweep,  // premium
+  whisperMini,  // premium
 ];
 
 export const PRESETS: Record<string, AssPresetBuilder> = Object.fromEntries(

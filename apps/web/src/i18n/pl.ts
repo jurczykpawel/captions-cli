@@ -73,6 +73,12 @@ export const pl: Dict = {
     transcribing: 'Transkrybuję wideo lokalnie…',
     ready: 'Transkrypcja gotowa',
   },
+  unlock: {
+    basicText: 'Twój eksport ma znak wodny. Usuń go za darmo, podając mail.',
+    premiumText: 'To styl premium. Odblokuj, by eksportować bez znaku wodnego.',
+    mailBtn: 'Usuń znak wodny (mail)',
+    buyBtn: 'Odblokuj premium',
+  },
   ws: {
     generate: 'Generuj napisy',
     generating: 'Generuję…',

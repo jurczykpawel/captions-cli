@@ -37,6 +37,8 @@ const COLORS = { fontColor: '#ffffff', highlightColor: '#ffca28', upcomingColor:
 const CAPTION_TOP_PERCENT = 74;
 const EXPORT_FPS = 30;
 const UNLOCK_KEY = 'captions:emailUnlocked';
+const PREMIUM_KEY = 'captions:premium';
+const WATERMARK_TEXT = 'captions.techskills.academy';
 
 export function initApp() {
   const t = readJson<Dict>('ws-i18n', {});
@@ -179,12 +181,17 @@ export function initApp() {
     }
   }
 
+  // Every style previews live on the video. Using a style cleanly is what's
+  // gated: free is always clean; basic needs an email; premium needs a purchase.
+  // Until unlocked, export burns a demo watermark.
+  const hasPremium = () => localStorage.getItem(PREMIUM_KEY) === '1';
+  function shouldWatermark(): boolean {
+    if (currentTier === 'basic') return !isUnlocked();
+    if (currentTier === 'premium') return !hasPremium();
+    return false;
+  }
+
   function selectPreset(slug: string, tier: string) {
-    // Premium styles aren't bundled in the web app; send to the buy/how-to page.
-    if (tier === 'premium') {
-      if (cfg.buyUrl) window.open(cfg.buyUrl, '_blank', 'noopener');
-      return;
-    }
     previewPreset(slug, tier);
   }
 
@@ -227,23 +234,15 @@ export function initApp() {
 
   async function exportVideo() {
     if (!file || !meta || !cues) return;
-    // Gate at export: premium needs purchase, basic needs an email unlock.
-    if (currentTier === 'premium') {
-      if (cfg.buyUrl) window.open(cfg.buyUrl, '_blank', 'noopener');
-      return;
-    }
-    if (currentTier === 'basic' && !isUnlocked()) {
-      pendingExport = true;
-      openEmailDialog();
-      return;
-    }
     const engine = getExportEngine();
     if (!engine) {
       if (exportStatus) exportStatus.textContent = tr('exportUi', 'unsupported');
       return;
     }
+    const watermark = shouldWatermark();
     exportBtn!.disabled = true;
     if (downloadLink) downloadLink.hidden = true;
+    hideUnlockCta();
     if (exportProgress) {
       exportProgress.hidden = false;
       exportProgress.value = 0;
@@ -257,6 +256,8 @@ export function initApp() {
         height: meta.height,
         durationSeconds: meta.durationSeconds,
         fps: EXPORT_FPS,
+        watermark,
+        watermarkText: WATERMARK_TEXT,
         buildStage: (parent) =>
           buildCaptionStage({
             parent,
@@ -278,12 +279,36 @@ export function initApp() {
         downloadLink.hidden = false;
       }
       if (exportStatus) exportStatus.textContent = tr('exportUi', 'done');
+      if (watermark) showUnlockCta();
     } catch (err) {
       if (exportStatus) exportStatus.textContent = err instanceof Error ? err.message : String(err);
     } finally {
       exportBtn!.disabled = false;
     }
   }
+
+  // Offer to remove the watermark after a gated export.
+  const unlockCta = $('unlock-cta');
+  const unlockText = $('unlock-text');
+  const unlockBtn = $<HTMLButtonElement>('unlock-btn');
+  function hideUnlockCta() {
+    unlockCta?.setAttribute('hidden', '');
+  }
+  function showUnlockCta() {
+    if (!unlockCta) return;
+    const premium = currentTier === 'premium';
+    if (unlockText) unlockText.textContent = premium ? tr('unlock', 'premiumText') : tr('unlock', 'basicText');
+    if (unlockBtn) unlockBtn.textContent = premium ? tr('unlock', 'buyBtn') : tr('unlock', 'mailBtn');
+    unlockCta.removeAttribute('hidden');
+  }
+  unlockBtn?.addEventListener('click', () => {
+    if (currentTier === 'premium') {
+      if (cfg.buyUrl) window.open(cfg.buyUrl, '_blank', 'noopener');
+      return;
+    }
+    pendingExport = true;
+    openEmailDialog();
+  });
 
   // ---- email dialog ----
   const dialog = $<HTMLDialogElement>('email-dialog');

@@ -25,6 +25,64 @@ function evenDim(n: number): number {
   return Math.max(2, Math.floor(n / 2) * 2);
 }
 
+/**
+ * Demo watermark: a faint diagonal brand grid across the whole frame (so the
+ * free export is preview-only, not croppable to a clean clip) plus a solid
+ * badge that jumps position every second (anti-crop, like TikTok's logo).
+ */
+function drawWatermark(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  t: number,
+  text: string,
+): void {
+  // 1. Tiled diagonal brand grid over the whole frame.
+  ctx.save();
+  ctx.globalAlpha = 0.13;
+  ctx.fillStyle = '#ffffff';
+  const gridFont = Math.max(14, Math.round(h * 0.028));
+  ctx.font = `600 ${gridFont}px system-ui, sans-serif`;
+  ctx.textBaseline = 'middle';
+  ctx.translate(w / 2, h / 2);
+  ctx.rotate(-Math.PI / 6);
+  const tile = `${text}  •  DEMO   `;
+  const tileW = ctx.measureText(tile).width;
+  const rowGap = Math.round(h * 0.11);
+  for (let y = -h; y < h; y += rowGap) {
+    const offset = (Math.floor(y / rowGap) % 2) * (tileW / 2);
+    for (let x = -w - tileW; x < w + tileW; x += tileW) {
+      ctx.fillText(tile, x + offset, y);
+    }
+  }
+  ctx.restore();
+
+  // 2. Moving badge (changes corner each second).
+  const spots: [number, number][] = [
+    [0.08, 0.08],
+    [0.62, 0.12],
+    [0.18, 0.86],
+    [0.58, 0.82],
+    [0.36, 0.46],
+  ];
+  const [fx, fy] = spots[Math.floor(t) % spots.length];
+  const badgeFont = Math.max(16, Math.round(h * 0.03));
+  ctx.save();
+  ctx.font = `700 ${badgeFont}px system-ui, sans-serif`;
+  ctx.textBaseline = 'middle';
+  const padX = badgeFont * 0.6;
+  const padY = badgeFont * 0.45;
+  const tw = ctx.measureText(text).width;
+  const bx = fx * (w - tw - padX * 2);
+  const by = fy * (h - badgeFont - padY * 2);
+  ctx.globalAlpha = 0.9;
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(bx, by, tw + padX * 2, badgeFont + padY * 2);
+  ctx.fillStyle = '#ffca28';
+  ctx.fillText(text, bx + padX, by + (badgeFont + padY * 2) / 2);
+  ctx.restore();
+}
+
 export const mediabunnyEngine: ExportEngine = {
   id: 'mediabunny-webcodecs',
 
@@ -105,6 +163,9 @@ export const mediabunnyEngine: ExportEngine = {
         stage.seek(t);
         const capImg = await raster.frame();
         if (capImg) ctx.drawImage(capImg, 0, 0, width, height);
+        if (req.watermark) {
+          drawWatermark(ctx, width, height, t, req.watermarkText ?? 'captions.techskills.academy');
+        }
         await videoSource.add(t, frameDur);
         i++;
         req.onProgress?.(i / count);

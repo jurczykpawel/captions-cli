@@ -15,6 +15,11 @@ export interface ExportRequest {
   durationSeconds: number;
   fps: number;
   buildStage: StageFactory;
+  /** Burn a demo watermark (moving badge + full-frame brand grid) so the free
+   *  export is preview-only. Removed once the style is unlocked. */
+  watermark?: boolean;
+  /** Text used by the watermark (defaults to the site host). */
+  watermarkText?: string;
   onProgress?: (fraction: number) => void;
   signal?: AbortSignal;
 }

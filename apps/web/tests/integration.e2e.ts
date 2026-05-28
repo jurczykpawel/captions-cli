@@ -29,24 +29,29 @@ test('upload -> transcribe -> preview -> email unlock -> export', async ({ page 
   await expect(page.locator('#preset-step')).toBeVisible({ timeout: 30_000 });
   await expect(page.locator('#captions .word')).toHaveCount(2);
 
-  // A basic preset is locked. Clicking it PREVIEWS it (no gate) — the dialog
-  // stays closed; the card becomes active but remains locked.
+  // Clicking a basic style PREVIEWS it live (no gate); card active but locked.
   const basicCard = page.locator('.preset-card[data-tier="basic"]').first();
   await expect(basicCard).toHaveClass(/is-locked/);
   await basicCard.click();
   await expect(basicCard).toHaveClass(/is-active/);
   await expect(page.locator('#email-dialog')).toHaveJSProperty('open', false);
 
-  // The email gate kicks in at EXPORT time for a locked style.
+  // Export always works -> a WATERMARKED video + the "remove watermark" CTA.
   await page.click('#export-btn');
+  const download = page.locator('#download-link');
+  await expect(download).toBeVisible({ timeout: 60_000 });
+  await expect(download).toHaveAttribute('href', /^blob:/);
+  await expect(page.locator('#unlock-cta')).toBeVisible();
+
+  // The unlock CTA opens the email dialog.
+  await page.click('#unlock-btn');
   await expect(page.locator('#email-dialog')).toHaveJSProperty('open', true);
   // Dialog is centered, not pinned to the top-left corner.
   const box = await page.locator('#email-dialog').boundingBox();
   expect(box!.x).toBeGreaterThan(100);
   expect(box!.y).toBeGreaterThan(50);
 
-  // Neutralize altcha (challenge fetch fails offline; in prod it solves and
-  // submit proceeds), then submit -> unlock -> export auto-resumes.
+  // Neutralize altcha (offline), submit -> unlock -> clean re-export.
   await page.evaluate(() => document.querySelector('altcha-widget')?.remove());
   await page.fill('#email-input', 'tester@example.com');
   await page.check('#tos-checkbox');
@@ -54,8 +59,7 @@ test('upload -> transcribe -> preview -> email unlock -> export', async ({ page 
   await expect(page.locator('#email-dialog')).toHaveJSProperty('open', false);
   await expect(basicCard).not.toHaveClass(/is-locked/);
 
-  // Export resumes after unlock -> download link gets a real blob URL.
-  const download = page.locator('#download-link');
+  // After unlock the export reruns clean -> download present, no watermark CTA.
   await expect(download).toBeVisible({ timeout: 60_000 });
-  await expect(download).toHaveAttribute('href', /^blob:/);
+  await expect(page.locator('#unlock-cta')).toBeHidden();
 });
