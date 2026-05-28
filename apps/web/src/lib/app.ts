@@ -363,6 +363,14 @@ export function initApp() {
     card.addEventListener('click', () => selectPreset(card.dataset.slug ?? 'text', card.dataset.tier ?? 'free'));
   });
 
+  // Polish is much better on the small model; default to it for PL (user can
+  // still override).
+  const syncModelToLang = () => {
+    if (modelSelect && langSelect) modelSelect.value = langSelect.value === 'pl' ? 'small' : 'base';
+  };
+  langSelect?.addEventListener('change', syncModelToLang);
+  syncModelToLang();
+
   // restore unlock state on load
   if (isUnlocked()) {
     document.querySelectorAll<HTMLElement>('.preset-card[data-tier="basic"]').forEach((c) =>
