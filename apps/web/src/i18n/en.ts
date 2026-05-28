@@ -73,10 +73,28 @@ export const en: Dict = {
     transcribing: 'Transcribing your video locally…',
     ready: 'Transcript ready',
   },
+  ws: {
+    generate: 'Generate captions',
+    generating: 'Generating…',
+    model: 'Model',
+    language: 'Language',
+    play: 'Play',
+    pause: 'Pause',
+    style: 'Caption style',
+    exportNote: 'Export runs locally in your browser. Keep this tab open.',
+    premiumTeaser: 'More premium styles',
+    changeVideo: 'Change video',
+    needCaptionsFirst: 'Generate captions first.',
+  },
   footer: {
     tagline: 'Local, private captioning by TechSkills Academy.',
     tos: 'Terms',
     privacy: 'Privacy',
     source: 'Source on GitHub',
+  },
+  legal: {
+    privacyTitle: 'Privacy Policy',
+    termsTitle: 'Terms of Service',
+    back: 'Back to app',
   },
 };

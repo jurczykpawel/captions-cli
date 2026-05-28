@@ -47,7 +47,21 @@ export interface Dict {
     unsupported: string;
   };
   transcribe: { loadingModel: string; transcribing: string; ready: string };
+  ws: {
+    generate: string;
+    generating: string;
+    model: string;
+    language: string;
+    play: string;
+    pause: string;
+    style: string;
+    exportNote: string;
+    premiumTeaser: string;
+    changeVideo: string;
+    needCaptionsFirst: string;
+  };
   footer: { tagline: string; tos: string; privacy: string; source: string };
+  legal: { privacyTitle: string; termsTitle: string; back: string };
 }
 
 import { en } from './en';

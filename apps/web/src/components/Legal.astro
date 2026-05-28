@@ -1,0 +1,75 @@
+---
+import { getDict, type Locale } from '../i18n';
+
+interface Props {
+  locale: Locale;
+  kind: 'privacy' | 'terms';
+}
+
+const { locale, kind } = Astro.props;
+const t = getDict(locale);
+const title = kind === 'privacy' ? t.legal.privacyTitle : t.legal.termsTitle;
+
+const content: Record<Locale, Record<'privacy' | 'terms', string>> = {
+  en: {
+    privacy: `
+<p>This tool runs entirely in your browser. Your video and its transcript are processed locally on your device and are never uploaded to any server. We do not receive, see, or store your media.</p>
+<h2>What we collect</h2>
+<p>Nothing, unless you choose to unlock extra caption styles by entering your email. In that case your email address is sent to our self-hosted newsletter system (Listmonk) so we can send you occasional updates. You can unsubscribe at any time via the link in every email.</p>
+<h2>Anti-spam</h2>
+<p>The email form is protected by Altcha, a privacy-friendly proof-of-work challenge. It does not track you.</p>
+<h2>Cookies & local storage</h2>
+<p>We do not use tracking cookies. A small flag (whether you unlocked the extra styles) is kept in your browser's local storage and never leaves your device.</p>
+<h2>Contact</h2>
+<p>Questions? Reach us via the project on GitHub.</p>`,
+    terms: `
+<p>This tool is provided free of charge, as is, without warranty of any kind. You use it at your own risk.</p>
+<h2>Your content</h2>
+<p>You keep all rights to the videos you process. Because everything runs locally, we never take ownership of or access to your files.</p>
+<h2>Acceptable use</h2>
+<p>Do not use this tool to create unlawful, infringing, or harmful content.</p>
+<h2>Limitation of liability</h2>
+<p>To the maximum extent permitted by law, we are not liable for any damages arising from the use of this tool.</p>
+<h2>Open source</h2>
+<p>The underlying engine is open source (MIT). See the project on GitHub.</p>`,
+  },
+  pl: {
+    privacy: `
+<p>To narzędzie działa w całości w Twojej przeglądarce. Twoje wideo i jego transkrypcja są przetwarzane lokalnie na Twoim urządzeniu i nigdy nie są wysyłane na żaden serwer. Nie otrzymujemy, nie widzimy ani nie przechowujemy Twoich plików.</p>
+<h2>Co zbieramy</h2>
+<p>Nic, chyba że zdecydujesz się odblokować dodatkowe style napisów, podając swój email. Wtedy Twój adres email trafia do naszego samodzielnie hostowanego systemu newsletterowego (Listmonk), abyśmy mogli wysyłać Ci sporadyczne aktualizacje. Możesz wypisać się w każdej chwili linkiem w każdym mailu.</p>
+<h2>Ochrona przed spamem</h2>
+<p>Formularz email jest chroniony przez Altcha, przyjazne prywatności wyzwanie proof-of-work. Nie śledzi Cię.</p>
+<h2>Pliki cookie i pamięć lokalna</h2>
+<p>Nie używamy śledzących plików cookie. Niewielka flaga (czy odblokowałeś dodatkowe style) jest przechowywana w pamięci lokalnej przeglądarki i nigdy nie opuszcza Twojego urządzenia.</p>
+<h2>Kontakt</h2>
+<p>Pytania? Skontaktuj się z nami przez projekt na GitHubie.</p>`,
+    terms: `
+<p>To narzędzie jest udostępniane bezpłatnie, w stanie „takim jakie jest", bez żadnych gwarancji. Korzystasz z niego na własne ryzyko.</p>
+<h2>Twoje treści</h2>
+<p>Zachowujesz wszystkie prawa do przetwarzanych wideo. Ponieważ wszystko dzieje się lokalnie, nigdy nie przejmujemy własności ani dostępu do Twoich plików.</p>
+<h2>Dozwolone użycie</h2>
+<p>Nie używaj tego narzędzia do tworzenia treści niezgodnych z prawem, naruszających prawa lub szkodliwych.</p>
+<h2>Ograniczenie odpowiedzialności</h2>
+<p>W maksymalnym zakresie dozwolonym przez prawo nie ponosimy odpowiedzialności za jakiekolwiek szkody wynikające z korzystania z tego narzędzia.</p>
+<h2>Open source</h2>
+<p>Silnik napędzający narzędzie jest open source (MIT). Zobacz projekt na GitHubie.</p>`,
+  },
+};
+
+const back = locale === 'en' ? '/' : '/pl';
+---
+
+<section class="container prose">
+  <h1>{title}</h1>
+  <Fragment set:html={content[locale][kind]} />
+  <p class="prose__back"><a href={back}>{t.legal.back}</a></p>
+</section>
+
+<style>
+  .prose { max-width: 680px; margin-inline: auto; padding-block: clamp(2.5rem, 6vw, 4rem); }
+  .prose h1 { margin-bottom: 1.5rem; }
+  .prose :global(h2) { margin: 1.75rem 0 0.5rem; font-size: 1.1rem; }
+  .prose :global(p) { color: var(--text-muted); margin-bottom: 0.9rem; }
+  .prose__back { margin-top: 2rem; }
+</style>

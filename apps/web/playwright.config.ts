@@ -17,7 +17,7 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: `bun run build && bun run astro preview --port ${PORT}`,
+    command: `KEEP_DEV=1 bun run build && bun run astro preview --port ${PORT}`,
     port: PORT,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

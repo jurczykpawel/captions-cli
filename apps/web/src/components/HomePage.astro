@@ -1,5 +1,6 @@
 ---
 import { getDict, type Locale } from '../i18n';
+import { presetsByTier } from '@captions-cli/engine-hf/presets';
 
 interface Props {
   locale: Locale;
@@ -7,6 +8,27 @@ interface Props {
 
 const { locale } = Astro.props;
 const t = getDict(locale);
+
+const tiers = presetsByTier();
+// Premium teasers: shown locked, not bundled/rendered (true upsell).
+const premiumTeasers = [
+  { slug: 'hormozi', label: 'Hormozi' },
+  { slug: 'single-word', label: 'Single word' },
+  { slug: 'outline-pop', label: 'Outline pop' },
+  { slug: 'hype', label: 'Hype' },
+];
+
+const LISTMONK_BASE = 'https://mail.techskills.academy';
+const config = {
+  locale,
+  // TODO: replace with the dedicated "Captions Web" Listmonk list UUID before deploy.
+  listmonkEndpoint: `${LISTMONK_BASE}/api/public/subscription`,
+  listmonkList: '00000000-0000-0000-0000-000000000000',
+  buyUrl: 'https://github.com/jurczykpawel/captions-cli',
+};
+
+const label = (slug: string) =>
+  slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 ---
 
 <section class="hero container">
@@ -16,7 +38,6 @@ const t = getDict(locale);
 </section>
 
 <section class="container app" id="app">
-  <!-- Upload card: the entry point. Wired by client scripts in later steps. -->
   <div class="card upload" id="upload-card" data-upload>
     <input type="file" id="file-input" accept="video/*" hidden />
     <label class="upload__zone" for="file-input" data-dropzone>
@@ -31,8 +52,71 @@ const t = getDict(locale);
     <p class="upload__error" id="upload-error" role="alert" aria-live="assertive" hidden></p>
   </div>
 
-  <!-- Workspace appears after a valid video is chosen (later steps). -->
-  <div class="workspace" id="workspace" hidden></div>
+  <div class="workspace" id="workspace" hidden>
+    <div class="ws-grid">
+      <div class="ws-preview">
+        <div class="stagewrap" id="stagewrap">
+          <video id="preview-video" playsinline muted></video>
+        </div>
+        <div class="ws-playbar">
+          <button class="btn btn--ghost" id="play-btn" type="button">{t.ws.play}</button>
+          <button class="btn btn--ghost" id="change-video-btn" type="button">{t.ws.changeVideo}</button>
+        </div>
+      </div>
+
+      <div class="ws-controls">
+        <div class="ws-block">
+          <div class="ws-row">
+            <label>{t.ws.model}
+              <select id="model-select">
+                <option value="base">base</option>
+                <option value="tiny">tiny</option>
+              </select>
+            </label>
+            <label>{t.ws.language}
+              <select id="lang-select">
+                <option value="en" selected={locale === 'en'}>EN</option>
+                <option value="pl" selected={locale === 'pl'}>PL</option>
+              </select>
+            </label>
+          </div>
+          <button class="btn btn--primary" id="transcribe-btn" type="button">{t.ws.generate}</button>
+          <p class="faint" id="transcribe-status" aria-live="polite"></p>
+        </div>
+
+        <div class="ws-block" id="preset-step" hidden>
+          <h3>{t.ws.style}</h3>
+          <div class="preset-grid">
+            {tiers.free.map((d) => (
+              <button class="preset-card is-active" data-slug={d.slug} data-tier="free" type="button" title={d.description}>
+                <span class="preset-card__name">{label(d.slug)}</span>
+                <span class="preset-card__tag free">{t.presets.free}</span>
+              </button>
+            ))}
+            {tiers.basic.map((d) => (
+              <button class="preset-card is-locked" data-slug={d.slug} data-tier="basic" type="button" title={d.description}>
+                <span class="preset-card__name">{label(d.slug)}</span>
+                <span class="preset-card__tag basic">{t.presets.basic}</span>
+              </button>
+            ))}
+            {premiumTeasers.map((p) => (
+              <button class="preset-card is-locked" data-slug={p.slug} data-tier="premium" type="button">
+                <span class="preset-card__name">{p.label}</span>
+                <span class="preset-card__tag premium">{t.presets.premium}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div class="ws-block" id="export-step" hidden>
+          <button class="btn btn--primary" id="export-btn" type="button">{t.exportUi.button}</button>
+          <progress id="export-progress" max="1" value="0" hidden></progress>
+          <a class="btn btn--ghost" id="download-link" hidden>{t.exportUi.download}</a>
+          <p class="faint" id="export-status" aria-live="polite">{t.ws.exportNote}</p>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 
 <section class="container privacy">
@@ -55,44 +139,99 @@ const t = getDict(locale);
   </ol>
 </section>
 
+<dialog class="email-dialog" id="email-dialog">
+  <form method="dialog" id="email-form">
+    <h3>{t.email.heading}</h3>
+    <p class="muted">{t.email.desc}</p>
+    <input type="email" id="email-input" name="email" required placeholder={t.email.placeholder} autocomplete="email" />
+    <altcha-widget challengeurl={`${LISTMONK_BASE}/api/public/captcha/altcha`} auto="onload" hidelogo hidefooter></altcha-widget>
+    <label class="tos">
+      <input type="checkbox" id="tos-checkbox" required />
+      <span>{t.email.consentPrefix} <a href={locale === 'en' ? '/terms' : '/pl/terms'} target="_blank">{t.email.tos}</a> {t.email.and} <a href={locale === 'en' ? '/privacy' : '/pl/privacy'} target="_blank">{t.email.privacy}</a>.</span>
+    </label>
+    <div class="email-dialog__actions">
+      <button class="btn btn--ghost" id="email-cancel" type="button">×</button>
+      <button class="btn btn--primary" id="email-submit" type="submit">{t.email.submit}</button>
+    </div>
+    <p class="faint" id="email-status" aria-live="polite"></p>
+  </form>
+</dialog>
+
+<script id="ws-i18n" type="application/json" set:html={JSON.stringify(t)}></script>
+<script id="ws-config" type="application/json" set:html={JSON.stringify(config)}></script>
+<script src="/altcha.umd.js" defer></script>
+<script>
+  import { initApp } from '../lib/app';
+  initApp();
+</script>
+
 <style>
   .hero { padding-block: clamp(2.5rem, 7vw, 5rem) 1.5rem; text-align: center; }
   .badge {
-    display: inline-block;
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: var(--teal);
+    display: inline-block; font-size: 0.78rem; font-weight: 600; color: var(--teal);
     border: 1px solid color-mix(in srgb, var(--teal) 40%, transparent);
     background: color-mix(in srgb, var(--teal) 12%, transparent);
-    border-radius: 999px;
-    padding: 0.3rem 0.8rem;
-    margin-bottom: 1.25rem;
+    border-radius: 999px; padding: 0.3rem 0.8rem; margin-bottom: 1.25rem;
   }
   .hero h1 { font-size: clamp(2rem, 5.5vw, 3.4rem); max-width: 18ch; margin-inline: auto; }
   .hero__sub { font-size: clamp(1rem, 2.2vw, 1.2rem); max-width: 52ch; margin: 1.1rem auto 0; }
 
   .app { padding-block: 1rem; }
-  .upload { padding: 0; overflow: hidden; }
+  .upload { padding: 0; }
   .upload__zone {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.4rem;
-    text-align: center;
-    padding: clamp(2rem, 6vw, 3.5rem);
-    cursor: pointer;
-    color: var(--text);
-    border: 2px dashed var(--border-strong);
-    border-radius: var(--radius);
+    display: flex; flex-direction: column; align-items: center; gap: 0.4rem; text-align: center;
+    padding: clamp(2rem, 6vw, 3.5rem); cursor: pointer; color: var(--text);
+    border: 2px dashed var(--border-strong); border-radius: var(--radius);
     transition: border-color 0.15s ease, background-color 0.15s ease;
   }
   .upload__zone:hover, .upload__zone[data-drag] {
-    border-color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 6%, transparent);
+    border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent);
   }
   .upload__zone svg { color: var(--accent); margin-bottom: 0.5rem; }
   .upload__hint { font-size: 0.85rem; }
-  .upload__error { color: var(--danger); padding: 0 1.25rem 1.25rem; font-size: 0.9rem; }
+  .upload__error { color: var(--danger); padding: 1rem 0 0; font-size: 0.9rem; }
+
+  .ws-grid { display: grid; gap: 1.5rem; grid-template-columns: 1fr; }
+  @media (min-width: 880px) { .ws-grid { grid-template-columns: 1.3fr 1fr; align-items: start; } }
+  .stagewrap {
+    position: relative; width: 100%; max-width: 480px; margin-inline: auto;
+    background: #000; border-radius: var(--radius); overflow: hidden; aspect-ratio: 9 / 16;
+  }
+  .stagewrap video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; }
+  .ws-playbar { display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.75rem; }
+
+  .ws-controls { display: flex; flex-direction: column; gap: 1rem; }
+  .ws-block { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+  .ws-block h3 { margin-bottom: 0.75rem; font-size: 1rem; }
+  .ws-row { display: flex; gap: 1rem; margin-bottom: 0.85rem; flex-wrap: wrap; }
+  .ws-row label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.85rem; color: var(--text-muted); }
+  select, input[type="email"] {
+    font: inherit; background: var(--bg-input); color: var(--text);
+    border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 0.5rem 0.7rem;
+  }
+  #transcribe-btn, #export-btn { width: 100%; }
+
+  .preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.6rem; }
+  .preset-card {
+    display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-start;
+    background: var(--bg-input); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+    padding: 0.7rem; cursor: pointer; color: var(--text); font: inherit; text-align: left;
+    transition: border-color 0.12s ease;
+  }
+  .preset-card:hover { border-color: var(--accent); }
+  .preset-card.is-active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .preset-card.is-locked { opacity: 0.7; }
+  .preset-card.is-locked::after { content: '🔒'; position: absolute; }
+  .preset-card { position: relative; }
+  .preset-card.is-locked .preset-card__name { padding-right: 1.1rem; }
+  .preset-card__name { font-weight: 600; font-size: 0.9rem; }
+  .preset-card__tag { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
+  .preset-card__tag.free { color: var(--ok); }
+  .preset-card__tag.basic { color: var(--teal); }
+  .preset-card__tag.premium { color: var(--accent); }
+
+  #export-progress { width: 100%; height: 8px; margin: 0.75rem 0; }
+  #download-link { width: 100%; margin-bottom: 0.5rem; }
 
   .privacy { padding-block: 2.5rem; }
   .privacy__card { max-width: 720px; margin-inline: auto; }
@@ -103,31 +242,16 @@ const t = getDict(locale);
 
   .steps { padding-block: 1rem 2rem; }
   .steps h2 { text-align: center; margin-bottom: 1.5rem; }
-  .steps__grid {
-    list-style: none;
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  }
-  .steps__grid li {
-    background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 1.25rem;
-    display: flex;
-    gap: 0.85rem;
-    align-items: flex-start;
-  }
-  .steps__n {
-    display: grid;
-    place-items: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: var(--accent);
-    color: var(--accent-ink);
-    font-weight: 800;
-    flex: none;
-  }
+  .steps__grid { list-style: none; display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .steps__grid li { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1.25rem; display: flex; gap: 0.85rem; align-items: flex-start; }
+  .steps__n { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-weight: 800; flex: none; }
   .steps__grid p { color: var(--text-muted); }
+
+  .email-dialog { border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--bg-elevated); color: var(--text); max-width: 440px; width: calc(100% - 2rem); padding: 1.5rem; }
+  .email-dialog::backdrop { background: rgba(0,0,0,0.6); }
+  .email-dialog form { display: flex; flex-direction: column; gap: 0.85rem; }
+  .email-dialog input[type="email"] { width: 100%; }
+  .email-dialog .tos { display: flex; gap: 0.5rem; font-size: 0.82rem; color: var(--text-muted); align-items: flex-start; }
+  .email-dialog__actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+  altcha-widget { --altcha-border-radius: 10px; font-size: 12px; }
 </style>

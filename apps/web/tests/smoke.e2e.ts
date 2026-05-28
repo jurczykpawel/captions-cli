@@ -14,3 +14,10 @@ test('polish home renders and language switch returns to english', async ({ page
   await page.getByRole('navigation', { name: 'Language' }).getByRole('link').click();
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Caption your video');
 });
+
+test('legal pages render in both locales', async ({ page }) => {
+  await page.goto('/privacy');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Privacy Policy');
+  await page.goto('/pl/terms');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Regulamin');
+});

@@ -73,10 +73,28 @@ export const pl: Dict = {
     transcribing: 'Transkrybuję wideo lokalnie…',
     ready: 'Transkrypcja gotowa',
   },
+  ws: {
+    generate: 'Generuj napisy',
+    generating: 'Generuję…',
+    model: 'Model',
+    language: 'Język',
+    play: 'Odtwórz',
+    pause: 'Pauza',
+    style: 'Styl napisów',
+    exportNote: 'Eksport liczy się lokalnie w przeglądarce. Zostaw tę kartę otwartą.',
+    premiumTeaser: 'Więcej stylów premium',
+    changeVideo: 'Zmień wideo',
+    needCaptionsFirst: 'Najpierw wygeneruj napisy.',
+  },
   footer: {
     tagline: 'Lokalne, prywatne napisy od TechSkills Academy.',
     tos: 'Regulamin',
     privacy: 'Prywatność',
     source: 'Kod na GitHubie',
+  },
+  legal: {
+    privacyTitle: 'Polityka prywatności',
+    termsTitle: 'Regulamin',
+    back: 'Wróć do aplikacji',
   },
 };
