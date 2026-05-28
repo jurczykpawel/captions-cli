@@ -88,7 +88,8 @@ docker run --rm \
   ghcr.io/jurczykpawel/captions-cli:slim \
   /work/reel.mp4 --lang pl
 
-# FULL: ass + hf. ~1.6 GB. Use when you need --engine hf.
+# FULL: ass + hf. ~1.6 GB. Use when you need --engine hf. (linux/amd64 only;
+# on Apple Silicon it runs under emulation — for arm64-native use :slim.)
 docker pull ghcr.io/jurczykpawel/captions-cli:full
 docker run --rm -v "$PWD:/work" -v "captions-cache:/data" \
   ghcr.io/jurczykpawel/captions-cli:full \

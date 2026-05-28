@@ -40,7 +40,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         chromium-headless-shell \
         fonts-inter \
         ca-certificates \
-    && npm install -g --omit=dev hyperframes \
+    && npm install -g --omit=dev "hyperframes@^0.4.32" \
     && npm cache clean --force \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt /tmp/* /root/.npm
 
