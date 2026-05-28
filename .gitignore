@@ -1,0 +1,13 @@
+node_modules
+dist
+*.log
+.DS_Store
+# Bun compiled single-file build artifacts
+*.bun-build
+# Outputs from local test runs
+*-captioned.mp4
+# Paid caption packs — basic + premium .ts files NEVER ship in the
+# public repo. Repopulated at build time by scripts/install-pack.sh.
+# The free pack (clean-white) lives in source as
+# packages/engine-ass/src/presets/clean-white.ts.
+packs/

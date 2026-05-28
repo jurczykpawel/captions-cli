@@ -1,0 +1,59 @@
+# ASS-only slim build. Strips Chromium + Node entirely — the ASS
+# engine renders through ffmpeg+libass, which apt's ffmpeg ships with.
+# Target image: ~870 MB (ffmpeg+libass + fonts + whisper.cpp + binary).
+#
+# This image only supports `--engine ass`. Pass `--engine hf` and the
+# CLI will fail at engine lookup time. Use Dockerfile.full for HF.
+
+# ── Stage 1: build whisper.cpp ─────────────────────────────────────────
+FROM debian:bookworm-slim AS whisper-build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential cmake git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /tmp
+RUN git clone --depth 1 --branch v1.7.4 https://github.com/ggerganov/whisper.cpp.git \
+    && cd whisper.cpp \
+    && cmake -B build -DGGML_NATIVE=OFF -DGGML_BLAS=OFF -DBUILD_SHARED_LIBS=OFF \
+    && cmake --build build -j --config Release --target whisper-cli
+
+# ── Stage 2: compile ASS-only CLI binary with Bun ──────────────────────
+# We patch out the engine-hf dependency before install so the slim
+# image doesn't carry hyperframes' transitive deps. Conditional build,
+# single source tree.
+FROM oven/bun:1-debian AS cli-build
+WORKDIR /app
+COPY package.json bun.lock ./
+COPY packages/core/package.json ./packages/core/
+COPY packages/engine-ass/package.json ./packages/engine-ass/
+COPY packages/cli/package.json ./packages/cli/
+RUN sed -i '/engine-hf/d' packages/cli/package.json
+RUN bun install
+COPY packages/core ./packages/core
+COPY packages/engine-ass ./packages/engine-ass
+COPY packages/cli ./packages/cli
+# Drop the HF engine import from the dispatcher before compile.
+RUN sed -i "/engine-hf/d; /hfEngine\.id.*hfEngine/d" packages/cli/src/engines.ts
+RUN cd packages/cli && bun build ./bin/captions-cli.ts --compile --outfile=/app/dist/captions
+
+# ── Stage 3: slim runtime — just whisper + ffmpeg + our binary ─────────
+FROM debian:bookworm-slim AS runtime
+LABEL org.opencontainers.image.source=https://github.com/jurczykpawel/captions-cli
+LABEL org.opencontainers.image.description="Burn word-level karaoke captions onto videos (ASS engine, slim)."
+LABEL org.opencontainers.image.licenses=MIT
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ffmpeg \
+        curl \
+        fonts-inter \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt /tmp/*
+
+COPY --from=whisper-build /tmp/whisper.cpp/build/bin/whisper-cli /usr/local/bin/
+COPY --from=cli-build /app/dist/captions /usr/local/bin/
+
+# Runs as root by design: this is a one-shot CLI that reads/writes the
+# user's bind-mounted /work and the model cache /data. A fixed non-root
+# UID would break writes when host file ownership differs.
+ENV HOME=/data
+WORKDIR /work
+ENTRYPOINT ["captions"]
+CMD ["--help"]
