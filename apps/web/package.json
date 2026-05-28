@@ -15,7 +15,8 @@
     "astro": "^5.7.0",
     "gsap": "^3.13.0",
     "mediabunny": "^1.0.0",
-    "@zumer/snapdom": "^1.9.0"
+    "@zumer/snapdom": "^1.9.0",
+    "@huggingface/transformers": "^3.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0"
