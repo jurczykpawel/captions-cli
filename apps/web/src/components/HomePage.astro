@@ -69,9 +69,10 @@ const label = (slug: string) =>
           <div class="ws-row">
             <label>{t.ws.model}
               <select id="model-select">
-                <option value="tiny">tiny — fast</option>
-                <option value="base" selected>base — balanced</option>
-                <option value="small">small — best (PL)</option>
+                <option value="tiny">tiny — fast (~40 MB)</option>
+                <option value="base" selected>base — balanced (~150 MB)</option>
+                <option value="small">small — best PL (~250 MB)</option>
+                <option value="large">large — top quality (~0.8 GB, WebGPU)</option>
               </select>
             </label>
             <label>{t.ws.language}

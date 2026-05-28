@@ -5,7 +5,13 @@
  */
 import { pipeline } from '@huggingface/transformers';
 import type { Word } from '@captions-cli/core/pure';
-import { WHISPER_MODELS, mapChunksToWords, type WhisperChunk, type WhisperModelSize } from './transcribe';
+import {
+  WHISPER_MODELS,
+  WHISPER_DTYPE,
+  mapChunksToWords,
+  type WhisperChunk,
+  type WhisperModelSize,
+} from './transcribe';
 
 export interface TranscribeProgress {
   stage: 'loading-model' | 'transcribing';
@@ -41,7 +47,7 @@ export async function runWhisper(opts: RunWhisperOptions): Promise<Word[]> {
   const key = `${modelId}:${device}`;
 
   if (!cache || cache.key !== key) {
-    const transcriber = (await pipeline('automatic-speech-recognition', modelId, {
+    const pipeOpts: Record<string, unknown> = {
       device,
       progress_callback: (info: { status?: string; total?: number; loaded?: number }) => {
         if (info.status === 'progress') {
@@ -51,7 +57,14 @@ export async function runWhisper(opts: RunWhisperOptions): Promise<Word[]> {
           });
         }
       },
-    })) as unknown as Transcriber;
+    };
+    const dtype = WHISPER_DTYPE[size];
+    if (dtype) pipeOpts.dtype = dtype;
+    const transcriber = (await pipeline(
+      'automatic-speech-recognition',
+      modelId,
+      pipeOpts,
+    )) as unknown as Transcriber;
     cache = { key, transcriber };
   }
 

@@ -4,16 +4,23 @@
  */
 import type { Word } from '@captions-cli/core/pure';
 
-export type WhisperModelSize = 'tiny' | 'base' | 'small';
+export type WhisperModelSize = 'tiny' | 'base' | 'small' | 'large';
 
 // The `_timestamped` variants are exported with alignment heads (cross
 // attentions), which word-level timestamps require. Plain whisper-base throws
-// "Model outputs must contain cross attentions". `small` is noticeably more
-// accurate for Polish at the cost of a bigger download.
+// "Model outputs must contain cross attentions". Bigger = more accurate
+// (esp. Polish) but a heavier download. `large` is large-v3-turbo.
 export const WHISPER_MODELS: Record<WhisperModelSize, string> = {
   tiny: 'onnx-community/whisper-tiny_timestamped',
   base: 'onnx-community/whisper-base_timestamped',
   small: 'onnx-community/whisper-small_timestamped',
+  large: 'onnx-community/whisper-large-v3-turbo_timestamped',
+};
+
+// Per-model dtype override. large-v3-turbo in fp32 is ~1.6 GB; q4 keeps it
+// usable in a browser tab at a small quality cost.
+export const WHISPER_DTYPE: Partial<Record<WhisperModelSize, string>> = {
+  large: 'q4',
 };
 
 export interface WhisperChunk {
