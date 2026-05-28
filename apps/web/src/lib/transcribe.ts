@@ -4,14 +4,16 @@
  */
 import type { Word } from '@captions-cli/core/pure';
 
-export type WhisperModelSize = 'base' | 'tiny';
+export type WhisperModelSize = 'tiny' | 'base' | 'small';
 
 // The `_timestamped` variants are exported with alignment heads (cross
 // attentions), which word-level timestamps require. Plain whisper-base throws
-// "Model outputs must contain cross attentions".
+// "Model outputs must contain cross attentions". `small` is noticeably more
+// accurate for Polish at the cost of a bigger download.
 export const WHISPER_MODELS: Record<WhisperModelSize, string> = {
-  base: 'onnx-community/whisper-base_timestamped',
   tiny: 'onnx-community/whisper-tiny_timestamped',
+  base: 'onnx-community/whisper-base_timestamped',
+  small: 'onnx-community/whisper-small_timestamped',
 };
 
 export interface WhisperChunk {

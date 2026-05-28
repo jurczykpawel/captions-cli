@@ -34,6 +34,10 @@ test('upload -> transcribe -> preview -> email unlock -> export', async ({ page 
   await expect(basicCard).toHaveClass(/is-locked/);
   await basicCard.click();
   await expect(page.locator('#email-dialog')).toHaveJSProperty('open', true);
+  // Dialog is centered, not pinned to the top-left corner.
+  const box = await page.locator('#email-dialog').boundingBox();
+  expect(box!.x).toBeGreaterThan(100);
+  expect(box!.y).toBeGreaterThan(50);
 
   // Neutralize altcha (challenge fetch fails offline; in prod it solves and
   // submit proceeds), then submit -> unlock.

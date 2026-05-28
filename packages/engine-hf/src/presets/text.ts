@@ -1,28 +1,23 @@
 /**
- * Text — baseline word-level karaoke. Plain colour swap on the active
- * word, no decoration. Free; works on any background.
+ * Text — the free baseline. Plain white subtitles on the default black pill,
+ * no per-word highlight and no word-timing colour change. Deliberately plain:
+ * it shows the tool works; the paid styles add the karaoke flair.
  */
 import type { HfPresetBuilder, HfPresetDefinition } from '../types';
 
-export const buildTextPreset: HfPresetBuilder = ({ fontColor, highlightColor, upcomingColor }) => {
-  const upcoming = upcomingColor ?? fontColor;
-  return {
-    css: `
+export const buildTextPreset: HfPresetBuilder = () => ({
+  css: `
 #captions .word {
   display: inline-block;
   margin-right: 0.25em;
-  color: ${upcoming};
-  will-change: color;
+  color: #ffffff;
 }
-#captions .word--past { color: ${fontColor}; }
-#captions .word--active { color: ${highlightColor}; }
 `.trim(),
-  };
-};
+});
 
 export const definition: HfPresetDefinition = {
   slug: 'text',
   tier: 'free',
-  description: 'Plain colour swap on active word. Baseline.',
+  description: 'Plain white subtitles, no word-timing highlight. Free demo.',
   build: buildTextPreset,
 };
