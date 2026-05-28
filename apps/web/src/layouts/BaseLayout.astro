@@ -39,7 +39,10 @@ const other: Locale = locale === 'en' ? 'pl' : 'en';
 
     <footer class="site-footer">
       <div class="container site-footer__inner">
-        <span class="faint">{t.footer.tagline}</span>
+        <span class="faint footer-made">
+          {t.footer.tagline} {t.footer.madeBy}
+          <a class="footer-brand" href="https://techskills.academy" target="_blank" rel="noopener">{t.footer.brand}</a>
+        </span>
         <span class="footer-links">
           <a href={localePath(locale, 'terms')}>{t.footer.tos}</a>
           <a href={localePath(locale, 'privacy')}>{t.footer.privacy}</a>
@@ -105,6 +108,14 @@ const other: Locale = locale === 'en' ? 'pl' : 'en';
       }
       .footer-links { display: inline-flex; gap: 1.25rem; }
       .footer-links a { color: var(--text-muted); }
+      .footer-made { display: inline-flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
+      .footer-brand {
+        color: var(--accent);
+        font-weight: 700;
+        text-decoration: none;
+        border-bottom: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+      }
+      .footer-brand:hover { border-bottom-color: var(--accent); }
     </style>
   </body>
 </html>

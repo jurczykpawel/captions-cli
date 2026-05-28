@@ -92,8 +92,15 @@ export const en: Dict = {
     changeVideo: 'Change video',
     needCaptionsFirst: 'Generate captions first.',
   },
+  cli: {
+    heading: 'Captioning a lot of videos? Automate it.',
+    body: 'The same engine is a free, open-source command-line tool you can script and batch. It is also where premium style packs install. Follow the quick start to set it up on your machine.',
+    cta: 'Quick start on GitHub',
+  },
   footer: {
-    tagline: 'Local, private captioning by TechSkills Academy.',
+    tagline: 'Local, private captioning.',
+    madeBy: 'Made by',
+    brand: 'TechSkills Academy',
     tos: 'Terms',
     privacy: 'Privacy',
     source: 'Source on GitHub',

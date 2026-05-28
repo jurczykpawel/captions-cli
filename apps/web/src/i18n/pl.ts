@@ -92,8 +92,15 @@ export const pl: Dict = {
     changeVideo: 'Zmień wideo',
     needCaptionsFirst: 'Najpierw wygeneruj napisy.',
   },
+  cli: {
+    heading: 'Robisz napisy do wielu filmów? Zautomatyzuj.',
+    body: 'Ten sam silnik to darmowe, open-source narzędzie w terminalu — możesz je skryptować i puszczać hurtowo. To też miejsce, gdzie instalują się paczki stylów premium. Zerknij do quick startu, żeby ustawić u siebie.',
+    cta: 'Quick start na GitHubie',
+  },
   footer: {
-    tagline: 'Lokalne, prywatne napisy od TechSkills Academy.',
+    tagline: 'Lokalne, prywatne napisy.',
+    madeBy: 'Tworzy',
+    brand: 'TechSkills Academy',
     tos: 'Regulamin',
     privacy: 'Prywatność',
     source: 'Kod na GitHubie',

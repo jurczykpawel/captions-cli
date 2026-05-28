@@ -10,7 +10,7 @@ const coiHeaders = {
 };
 
 export default defineConfig({
-  site: 'https://captions.sellf.app',
+  site: 'https://captions.techskills.academy',
   trailingSlash: 'never',
   i18n: {
     defaultLocale: 'en',
