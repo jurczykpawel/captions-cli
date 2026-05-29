@@ -281,6 +281,8 @@ export function initApp() {
       exportStep?.removeAttribute('hidden');
     } catch (err) {
       setStatus(err instanceof Error ? err.message : String(err));
+    } finally {
+      // Re-enable so the user can re-generate after changing model/language/video.
       transcribeBtn!.disabled = false;
     }
   }

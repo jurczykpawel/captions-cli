@@ -13,8 +13,8 @@ test('upload -> transcribe -> preview -> email unlock -> export', async ({ page 
       ],
     };
   });
-  await page.route(/\/api\/public\/subscription/, (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { id: 1 } }) }),
+  await page.route(/\/api\/subscribe/, (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) }),
   );
 
   await page.goto('/');
@@ -28,6 +28,13 @@ test('upload -> transcribe -> preview -> email unlock -> export', async ({ page 
   await page.click('#transcribe-btn');
   await expect(page.locator('#preset-step')).toBeVisible({ timeout: 30_000 });
   await expect(page.locator('#captions .word')).toHaveCount(2);
+
+  // Re-generate must work (e.g. after changing model/language/video): the button
+  // re-enables and a second run rebuilds the captions. Regression guard.
+  await expect(page.locator('#transcribe-btn')).toBeEnabled();
+  await page.click('#transcribe-btn');
+  await expect(page.locator('#captions .word')).toHaveCount(2);
+  await expect(page.locator('#transcribe-btn')).toBeEnabled();
 
   // Clicking a basic style PREVIEWS it live (no gate); card active but locked.
   const basicCard = page.locator('.preset-card[data-tier="basic"]').first();
