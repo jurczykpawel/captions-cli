@@ -7,13 +7,9 @@
 import type { HfPresetBuilder, HfPresetDefinition, HfPresetTier } from '../types';
 
 import { definition as text } from './text';
-import { definition as boxHighlight } from './box-highlight';
-import { definition as pill } from './pill';
 
 export const DEFINITIONS: HfPresetDefinition[] = [
   text,  // free
-  boxHighlight,  // basic
-  pill,  // basic
 ];
 
 export const PRESETS: Record<string, HfPresetBuilder> = Object.fromEntries(

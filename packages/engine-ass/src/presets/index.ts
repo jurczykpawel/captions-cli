@@ -7,17 +7,9 @@
 import type { AssPresetBuilder, AssPresetDefinition, AssPresetTier } from '../types';
 
 import { definition as cleanWhite } from './clean-white';
-import { definition as hormozi } from './hormozi';
-import { definition as outlinePop } from './outline-pop';
-import { definition as pill } from './pill';
-import { definition as popWord } from './pop-word';
 
 export const DEFINITIONS: AssPresetDefinition[] = [
   cleanWhite,  // free
-  hormozi,  // basic
-  outlinePop,  // basic
-  pill,  // basic
-  popWord,  // basic
 ];
 
 export const PRESETS: Record<string, AssPresetBuilder> = Object.fromEntries(
