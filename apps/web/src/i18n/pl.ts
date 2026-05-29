@@ -91,6 +91,16 @@ export const pl: Dict = {
     premiumTeaser: 'Więcej stylów premium',
     changeVideo: 'Zmień wideo',
     needCaptionsFirst: 'Najpierw wygeneruj napisy.',
+    loadPack: 'Wczytaj paczkę premium (.zip)',
+    getPremium: 'Kup premium',
+  },
+  premium: {
+    panelHeading: 'Style premium',
+    panelBody: 'Kup paczkę premium raz — używaj jej tu i w open-source CLI. Już masz? Wczytaj pobrany .zip.',
+    needPack: 'Styl premium. Kup paczkę, potem wczytaj .zip poniżej, aby odblokować.',
+    loading: 'Wczytuję paczkę…',
+    loaded: 'Premium odblokowane. Eksportuj bez znaku wodnego.',
+    error: 'Nie udało się odczytać paczki. Upewnij się, że to .zip który kupiłeś.',
   },
   cli: {
     heading: 'Robisz napisy do wielu filmów? Zautomatyzuj.',

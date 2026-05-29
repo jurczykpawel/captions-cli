@@ -11,3 +11,4 @@ dist
 # The free pack (clean-white) lives in source as
 # packages/engine-ass/src/presets/clean-white.ts.
 packs/
+dist-pack/

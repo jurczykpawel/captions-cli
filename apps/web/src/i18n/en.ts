@@ -91,6 +91,16 @@ export const en: Dict = {
     premiumTeaser: 'More premium styles',
     changeVideo: 'Change video',
     needCaptionsFirst: 'Generate captions first.',
+    loadPack: 'Load premium pack (.zip)',
+    getPremium: 'Get premium',
+  },
+  premium: {
+    panelHeading: 'Premium styles',
+    panelBody: 'Buy the premium pack once — use it here and in the open-source CLI. Already bought? Load the .zip you got.',
+    needPack: 'Premium style. Buy the pack, then load the .zip below to unlock it.',
+    loading: 'Loading pack…',
+    loaded: 'Premium unlocked. Export without a watermark.',
+    error: 'Could not read that pack. Make sure it is the .zip you purchased.',
   },
   cli: {
     heading: 'Captioning a lot of videos? Automate it.',

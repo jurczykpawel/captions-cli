@@ -9,6 +9,7 @@ import { runWhisper } from './whisper';
 import type { WhisperModelSize } from './transcribe';
 import { groupWordsIntoCues, type Cue, type Word, type PresetInput } from '@captions-cli/core/pure';
 import { PRESETS } from '@captions-cli/engine-hf/presets';
+import type { HfPresetBuilder } from '@captions-cli/engine-hf';
 import { getExportEngine } from './export';
 
 interface TestHooks {
@@ -38,7 +39,14 @@ const CAPTION_TOP_PERCENT = 74;
 const EXPORT_FPS = 30;
 const UNLOCK_KEY = 'captions:emailUnlocked';
 const PREMIUM_KEY = 'captions:premium';
+const PREMIUM_PACK_KEY = 'captions:premiumPack';
 const WATERMARK_TEXT = 'captions.techskills.academy';
+
+interface PremiumPreset {
+  slug: string;
+  css: string;
+  timelineJs?: string;
+}
 
 export function initApp() {
   const t = readJson<Dict>('ws-i18n', {});
@@ -77,6 +85,17 @@ export function initApp() {
   let currentTier = 'free';
   let pendingExport = false;
   let raf = 0;
+
+  // Bundled styles (free + basic) plus premium styles loaded at runtime from a
+  // purchased pack. Premium is NEVER in the build — only in the bought ZIP.
+  const premiumBuilders: Record<string, HfPresetBuilder> = {};
+  const getBuilder = (slug: string): HfPresetBuilder =>
+    PRESETS[slug] ?? premiumBuilders[slug] ?? PRESETS['text'];
+  function registerPremium(list: PremiumPreset[]) {
+    for (const p of list) {
+      premiumBuilders[p.slug] = () => ({ css: p.css, timelineJs: p.timelineJs });
+    }
+  }
 
   const tr = (section: string, key: string) => t[section]?.[key] ?? '';
   const fontSize = () => (meta ? Math.round(meta.height * 0.055) : 64);
@@ -146,7 +165,7 @@ export function initApp() {
   function mountStage(slug: string, useCues: Cue[] | null = cues) {
     if (!meta || !useCues || useCues.length === 0) return;
     if (stage) stage.destroy();
-    const build = PRESETS[slug] ?? PRESETS['text'];
+    const build = getBuilder(slug);
     stage = buildCaptionStage({
       parent: stagewrap!,
       cues: useCues,
@@ -192,6 +211,13 @@ export function initApp() {
   }
 
   function selectPreset(slug: string, tier: string) {
+    // Premium not loaded yet -> point the user at the buy/load panel.
+    if (tier === 'premium' && !premiumBuilders[slug]) {
+      const status = $('premium-status');
+      if (status) status.textContent = tr('premium', 'needPack');
+      $('premium-panel')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      return;
+    }
     previewPreset(slug, tier);
   }
 
@@ -262,7 +288,7 @@ export function initApp() {
           buildCaptionStage({
             parent,
             cues: cues!,
-            build: PRESETS[slug] ?? PRESETS['text'],
+            build: getBuilder(slug),
             preset: presetInput(),
             width: meta!.width,
             height: meta!.height,
@@ -309,6 +335,50 @@ export function initApp() {
     pendingExport = true;
     openEmailDialog();
   });
+
+  // ---- premium pack (the .zip bought via Sellf, loaded here or used in CLI) ----
+  const premiumFileInput = $<HTMLInputElement>('premium-file');
+  const loadPremiumBtn = $<HTMLButtonElement>('load-premium-btn');
+  const buyPremiumBtn = $<HTMLAnchorElement>('buy-premium-btn');
+  const premiumStatus = $('premium-status');
+
+  function unlockPremiumUi() {
+    document.querySelectorAll<HTMLElement>('.preset-card[data-tier="premium"]').forEach((c) =>
+      c.classList.remove('is-locked'),
+    );
+  }
+
+  async function handlePremiumPack(f: File) {
+    const setS = (s: string) => {
+      if (premiumStatus) premiumStatus.textContent = s;
+    };
+    try {
+      setS(tr('premium', 'loading'));
+      const buf = new Uint8Array(await f.arrayBuffer());
+      const { unzipSync, strFromU8 } = await import('fflate');
+      const entries = unzipSync(buf);
+      const key = Object.keys(entries).find((k) => k.endsWith('premium-pack.json'));
+      if (!key) throw new Error('premium-pack.json missing');
+      const list = JSON.parse(strFromU8(entries[key])) as PremiumPreset[];
+      if (!Array.isArray(list) || list.length === 0) throw new Error('empty pack');
+      registerPremium(list);
+      localStorage.setItem(PREMIUM_PACK_KEY, JSON.stringify(list));
+      localStorage.setItem(PREMIUM_KEY, '1');
+      unlockPremiumUi();
+      hideUnlockCta();
+      setS(tr('premium', 'loaded'));
+      if (cues) previewPreset(currentSlug, currentTier);
+    } catch {
+      setS(tr('premium', 'error'));
+    }
+  }
+
+  loadPremiumBtn?.addEventListener('click', () => premiumFileInput?.click());
+  premiumFileInput?.addEventListener('change', () => {
+    const f = premiumFileInput.files?.[0];
+    if (f) void handlePremiumPack(f);
+  });
+  if (cfg.buyUrl && buyPremiumBtn) buyPremiumBtn.href = cfg.buyUrl;
 
   // ---- email dialog ----
   const dialog = $<HTMLDialogElement>('email-dialog');
@@ -441,6 +511,15 @@ export function initApp() {
     document.querySelectorAll<HTMLElement>('.preset-card[data-tier="basic"]').forEach((c) =>
       c.classList.remove('is-locked'),
     );
+  }
+  const savedPack = localStorage.getItem(PREMIUM_PACK_KEY);
+  if (savedPack) {
+    try {
+      registerPremium(JSON.parse(savedPack) as PremiumPreset[]);
+      unlockPremiumUi();
+    } catch {
+      /* ignore a corrupt saved pack */
+    }
   }
 
   window.addEventListener('resize', syncScale);

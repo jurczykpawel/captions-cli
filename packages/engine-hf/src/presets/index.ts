@@ -9,29 +9,11 @@ import type { HfPresetBuilder, HfPresetDefinition, HfPresetTier } from '../types
 import { definition as text } from './text';
 import { definition as boxHighlight } from './box-highlight';
 import { definition as pill } from './pill';
-import { definition as glow } from './glow';
-import { definition as hormozi } from './hormozi';
-import { definition as hype } from './hype';
-import { definition as outlinePop } from './outline-pop';
-import { definition as paperCutout } from './paper-cutout';
-import { definition as paperCutoutTyped } from './paper-cutout-typed';
-import { definition as popWord } from './pop-word';
-import { definition as singleWord } from './single-word';
-import { definition as underlineSweep } from './underline-sweep';
 
 export const DEFINITIONS: HfPresetDefinition[] = [
   text,  // free
   boxHighlight,  // basic
   pill,  // basic
-  glow,  // premium
-  hormozi,  // premium
-  hype,  // premium
-  outlinePop,  // premium
-  paperCutout,  // premium
-  paperCutoutTyped,  // premium
-  popWord,  // premium
-  singleWord,  // premium
-  underlineSweep,  // premium
 ];
 
 export const PRESETS: Record<string, HfPresetBuilder> = Object.fromEntries(
