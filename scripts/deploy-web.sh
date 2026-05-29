@@ -10,8 +10,16 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$ROOT/apps/web"
+HAVE_PACKS=0
+[ -d "$ROOT/packs/hf/premium" ] && HAVE_PACKS=1
 
+# Install the full pack so basic + premium tiers ship; restore the free-only
+# (public) state afterwards so the tree never sits in a leaky state.
+restore_free() { [ "$HAVE_PACKS" = 1 ] && "$ROOT/scripts/install-pack.sh" free >/dev/null; }
+trap restore_free EXIT
+[ "$HAVE_PACKS" = 1 ] && "$ROOT/scripts/install-pack.sh" premium
+
+cd "$ROOT/apps/web"
 bun run build
 
 ZIP="$ROOT/dist-pack/captions-premium.zip"
