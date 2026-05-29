@@ -23,8 +23,14 @@ export function normEmail(value: unknown): string {
   return String(value ?? '').trim().toLowerCase();
 }
 
-export function entitlementKey(email: string): string {
-  return `buyer:${email}`;
+export function entitlementKey(licenseKey: string): string {
+  return `lic:${licenseKey}`;
+}
+
+/** A random, unguessable license key (cap_ + 128 bits hex). */
+export function generateLicenseKey(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return 'cap_' + [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 export function b64ToBytes(b64: string): Uint8Array {

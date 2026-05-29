@@ -67,10 +67,10 @@ export interface Dict {
     panelHeading: string;
     panelBody: string;
     needPack: string;
-    emailPlaceholder: string;
+    keyPlaceholder: string;
     unlockBtn: string;
     downloadCli: string;
-    badEmail: string;
+    badKey: string;
     notFound: string;
     loaded: string;
     error: string;

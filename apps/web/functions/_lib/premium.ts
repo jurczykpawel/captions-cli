@@ -3,7 +3,8 @@
 // never in the static site), so premium is served only by these gated endpoints.
 import assets from '../_premium-assets.json';
 
-export { verifyHmacHex, normEmail, entitlementKey, b64ToBytes, json } from './crypto';
+export { verifyHmacHex, normEmail, entitlementKey, generateLicenseKey, b64ToBytes, json } from './crypto';
+export { sendLicenseEmail } from './ses';
 
 export interface PremiumPreset {
   slug: string;
@@ -23,6 +24,10 @@ export const PREMIUM_SLUG = 'captions-premium-styles';
 export interface Env {
   PREMIUM: { get(key: string): Promise<string | null>; put(key: string, value: string): Promise<void> };
   SELLF_WEBHOOK_SECRET: string;
+  SES_ACCESS_KEY_ID: string;
+  SES_SECRET_ACCESS_KEY: string;
+  SES_REGION: string;
+  SES_FROM: string;
 }
 
 export type Ctx = { request: Request; env: Env };

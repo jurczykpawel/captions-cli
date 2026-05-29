@@ -1,7 +1,15 @@
 // Sellf -> here on purchase. Verifies the signed webhook (X-Sellf-Signature =
 // hex HMAC-SHA256 of the raw body) and records the buyer's entitlement in KV.
 // Unsigned / forged calls are rejected, so nobody can self-grant premium.
-import { verifyHmacHex, normEmail, entitlementKey, PREMIUM_SLUG, type Ctx } from '../_lib/premium';
+import {
+  verifyHmacHex,
+  normEmail,
+  entitlementKey,
+  generateLicenseKey,
+  sendLicenseEmail,
+  PREMIUM_SLUG,
+  type Ctx,
+} from '../_lib/premium';
 
 export const onRequestPost = async ({ request, env }: Ctx): Promise<Response> => {
   const raw = await request.text();
@@ -29,7 +37,9 @@ export const onRequestPost = async ({ request, env }: Ctx): Promise<Response> =>
   const slug = data?.product?.slug;
 
   if (email && slug === PREMIUM_SLUG) {
-    await env.PREMIUM.put(entitlementKey(email), JSON.stringify({ slug, ts: Date.now() }));
+    const licenseKey = generateLicenseKey();
+    await env.PREMIUM.put(entitlementKey(licenseKey), JSON.stringify({ email, slug, ts: Date.now() }));
+    await sendLicenseEmail(env, email, licenseKey);
   }
   return new Response('ok', { status: 200 });
 };

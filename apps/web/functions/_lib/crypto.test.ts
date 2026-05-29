@@ -1,6 +1,6 @@
 import { test, expect } from 'bun:test';
 import { createHmac } from 'node:crypto';
-import { verifyHmacHex, normEmail, b64ToBytes } from './crypto';
+import { verifyHmacHex, normEmail, b64ToBytes, generateLicenseKey, entitlementKey } from './crypto';
 
 // Sellf signs: hex HMAC-SHA256 of the raw body with the endpoint secret.
 const sign = (secret: string, body: string) => createHmac('sha256', secret).update(body).digest('hex');
@@ -29,4 +29,15 @@ test('normEmail lowercases and trims', () => {
 test('b64ToBytes round-trips', () => {
   const bytes = b64ToBytes(btoa('hello'));
   expect(new TextDecoder().decode(bytes)).toBe('hello');
+});
+
+test('generateLicenseKey is unique and well-formed', () => {
+  const a = generateLicenseKey();
+  const b = generateLicenseKey();
+  expect(a).toMatch(/^cap_[0-9a-f]{32}$/);
+  expect(a).not.toBe(b);
+});
+
+test('entitlementKey namespaces by license key', () => {
+  expect(entitlementKey('cap_abc')).toBe('lic:cap_abc');
 });

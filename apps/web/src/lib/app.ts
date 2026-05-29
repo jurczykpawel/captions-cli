@@ -40,7 +40,7 @@ const EXPORT_FPS = 30;
 const UNLOCK_KEY = 'captions:emailUnlocked';
 const PREMIUM_KEY = 'captions:premium';
 const PREMIUM_PACK_KEY = 'captions:premiumPack';
-const PREMIUM_EMAIL_KEY = 'captions:premiumEmail';
+const PREMIUM_KEY_KEY = 'captions:premiumKey';
 const WATERMARK_TEXT = 'captions.techskills.academy';
 
 interface PremiumPreset {
@@ -337,25 +337,24 @@ export function initApp() {
     openEmailDialog();
   });
 
-  // ---- premium unlock (enter the email you bought with -> gated Worker) ----
-  const premiumEmailInput = $<HTMLInputElement>('premium-email');
+  // ---- premium unlock (enter the license key emailed after purchase) ----
+  const premiumKeyInput = $<HTMLInputElement>('premium-key');
   const unlockPremiumBtn = $<HTMLButtonElement>('unlock-premium-btn');
   const buyPremiumBtn = $<HTMLAnchorElement>('buy-premium-btn');
   const downloadCliLink = $<HTMLAnchorElement>('download-cli-link');
   const premiumStatus = $('premium-status');
-  const normEmail = (e?: string) => (e ?? '').trim().toLowerCase();
 
-  function unlockPremiumUi(email: string) {
+  function unlockPremiumUi(key: string) {
     document.querySelectorAll<HTMLElement>('.preset-card[data-tier="premium"]').forEach((c) =>
       c.classList.remove('is-locked'),
     );
     if (downloadCliLink) {
-      downloadCliLink.href = `/api/premium-zip?email=${encodeURIComponent(email)}`;
+      downloadCliLink.href = `/api/premium-zip?key=${encodeURIComponent(key)}`;
       downloadCliLink.hidden = false;
     }
   }
 
-  async function unlockPremium(email: string, opts?: { silent?: boolean }): Promise<boolean> {
+  async function unlockPremium(key: string, opts?: { silent?: boolean }): Promise<boolean> {
     const setS = (s: string) => {
       if (premiumStatus && !opts?.silent) premiumStatus.textContent = s;
     };
@@ -363,7 +362,7 @@ export function initApp() {
       const res = await fetch('/api/premium', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ key }),
       });
       if (!res.ok) {
         setS(tr('premium', 'notFound'));
@@ -372,9 +371,9 @@ export function initApp() {
       const data = (await res.json()) as { presets: PremiumPreset[] };
       registerPremium(data.presets);
       localStorage.setItem(PREMIUM_PACK_KEY, JSON.stringify(data.presets));
-      localStorage.setItem(PREMIUM_EMAIL_KEY, email);
+      localStorage.setItem(PREMIUM_KEY_KEY, key);
       localStorage.setItem(PREMIUM_KEY, '1');
-      unlockPremiumUi(email);
+      unlockPremiumUi(key);
       hideUnlockCta();
       setS(tr('premium', 'loaded'));
       if (cues) previewPreset(currentSlug, currentTier);
@@ -386,12 +385,12 @@ export function initApp() {
   }
 
   unlockPremiumBtn?.addEventListener('click', () => {
-    const email = normEmail(premiumEmailInput?.value);
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      if (premiumStatus) premiumStatus.textContent = tr('premium', 'badEmail');
+    const key = (premiumKeyInput?.value ?? '').trim();
+    if (!key) {
+      if (premiumStatus) premiumStatus.textContent = tr('premium', 'badKey');
       return;
     }
-    void unlockPremium(email);
+    void unlockPremium(key);
   });
   if (cfg.buyUrl && buyPremiumBtn) buyPremiumBtn.href = cfg.buyUrl;
 
@@ -528,16 +527,16 @@ export function initApp() {
     );
   }
   const savedPack = localStorage.getItem(PREMIUM_PACK_KEY);
-  const savedEmail = localStorage.getItem(PREMIUM_EMAIL_KEY);
-  if (savedPack && savedEmail) {
+  const savedKey = localStorage.getItem(PREMIUM_KEY_KEY);
+  if (savedPack && savedKey) {
     try {
       registerPremium(JSON.parse(savedPack) as PremiumPreset[]);
-      unlockPremiumUi(savedEmail);
+      unlockPremiumUi(savedKey);
     } catch {
       /* ignore a corrupt saved pack */
     }
-    // Re-validate online so a revoked purchase loses access (offline keeps cache).
-    void unlockPremium(savedEmail, { silent: true });
+    // Re-validate online so a revoked key loses access (offline keeps cache).
+    void unlockPremium(savedKey, { silent: true });
   }
 
   window.addEventListener('resize', syncScale);

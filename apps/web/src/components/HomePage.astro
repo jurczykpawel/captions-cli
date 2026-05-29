@@ -115,7 +115,7 @@ const label = (slug: string) =>
               <p class="faint">{t.premium.panelBody}</p>
             </div>
             <div class="premium-panel__actions">
-              <input type="email" id="premium-email" placeholder={t.premium.emailPlaceholder} autocomplete="email" />
+              <input type="text" id="premium-key" placeholder={t.premium.keyPlaceholder} autocomplete="off" />
               <button class="btn btn--ghost" id="unlock-premium-btn" type="button">{t.premium.unlockBtn}</button>
               <a class="btn btn--primary" id="buy-premium-btn" href={config.buyUrl} target="_blank" rel="noopener">{t.ws.getPremium}</a>
             </div>

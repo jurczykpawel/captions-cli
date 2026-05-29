@@ -12,12 +12,13 @@
   "dependencies": {
     "@captions-cli/core": "workspace:*",
     "@captions-cli/engine-hf": "workspace:*",
-    "astro": "^5.7.0",
-    "gsap": "^3.13.0",
-    "mediabunny": "^1.0.0",
-    "@zumer/snapdom": "^1.9.0",
     "@huggingface/transformers": "^3.0.0",
-    "fflate": "^0.8.3"
+    "@zumer/snapdom": "^1.9.0",
+    "astro": "^5.7.0",
+    "aws4fetch": "^1.0.20",
+    "fflate": "^0.8.3",
+    "gsap": "^3.13.0",
+    "mediabunny": "^1.0.0"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",

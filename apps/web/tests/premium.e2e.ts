@@ -11,7 +11,7 @@ const ASSETS = resolve(ROOT, 'apps/web/functions/_premium-assets.json');
 test.describe('premium unlock', () => {
   test.skip(!existsSync(PACKS), 'private premium packs not present (free clone)');
 
-  test('enter purchase email -> premium unlocks + CLI download appears + clean export', async ({ page }) => {
+  test('enter license key -> premium unlocks + CLI download appears + clean export', async ({ page }) => {
     test.setTimeout(90_000);
     // Build the real premium data; mock the gated Worker (astro preview can't run Functions).
     execSync('bun scripts/build-premium-pack.mjs', { cwd: ROOT, stdio: 'ignore' });
@@ -38,8 +38,8 @@ test.describe('premium unlock', () => {
     const premiumCard = page.locator('.preset-card[data-tier="premium"]').first();
     await expect(premiumCard).toHaveClass(/is-locked/);
 
-    // Unlock with the purchase email.
-    await page.fill('#premium-email', 'buyer@example.com');
+    // Unlock with the license key (emailed after purchase).
+    await page.fill('#premium-key', 'cap_test0123456789abcdef');
     await page.click('#unlock-premium-btn');
     await expect(premiumCard).not.toHaveClass(/is-locked/, { timeout: 15_000 });
     await expect(page.locator('#download-cli-link')).toBeVisible();
