@@ -7,7 +7,13 @@ compatibility_date = "2024-11-01"
 #   wrangler kv namespace create PREMIUM
 [[kv_namespaces]]
 binding = "PREMIUM"
-id = "PLACEHOLDER_SET_AFTER_CREATE"
+id = "632456c9fce24986a69867a9d9bb1615"
+
+# Premium pack ZIP, streamed by /api/premium-zip to verified buyers.
+# Uploaded during deploy (scripts/deploy-web.sh), never embedded in the Worker.
+[[r2_buckets]]
+binding = "PREMIUM_BUCKET"
+bucket_name = "captions-premium"
 
 # SELLF_WEBHOOK_SECRET is a Pages secret (dashboard or `wrangler pages secret put`),
 # not committed here.

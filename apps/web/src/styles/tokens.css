@@ -55,6 +55,10 @@ a:hover { text-decoration: underline; }
 
 h1, h2, h3 { line-height: 1.15; letter-spacing: -0.02em; font-weight: 800; }
 
+/* `.btn`/`.dot` etc. set an explicit `display`, which beats the bare `[hidden]`
+   attribute — keep `hidden` authoritative so toggled buttons actually hide. */
+[hidden] { display: none !important; }
+
 .container {
   width: 100%;
   max-width: var(--maxw);

@@ -96,8 +96,11 @@ export const en: Dict = {
   },
   premium: {
     panelHeading: 'Premium styles',
-    panelBody: 'Buy once — unlock premium here in the browser and download the pack for the CLI. We email you a license key after purchase; paste it below.',
+    panelBody: 'Buy once — unlock premium here in the browser and download the pack for the CLI. We email you a license key after purchase.',
     needPack: 'Premium style. Buy it, then paste the license key from your email below.',
+    previewHint: 'Previewing on your video. Buy to export without a watermark and with the full animation.',
+    buyBtn: 'Get premium',
+    haveKey: 'Already bought? Paste your key:',
     keyPlaceholder: 'License key (cap_…)',
     unlockBtn: 'Unlock',
     downloadCli: 'Download pack for CLI (.zip)',

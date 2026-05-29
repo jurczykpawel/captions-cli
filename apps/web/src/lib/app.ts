@@ -51,9 +51,9 @@ interface PremiumPreset {
 
 export function initApp() {
   const t = readJson<Dict>('ws-i18n', {});
-  const cfg = readJson<{ locale: string; listmonkEndpoint: string; listmonkList: string; buyUrl: string }>(
+  const cfg = readJson<{ locale: string; subscribeEndpoint: string; buyUrl: string }>(
     'ws-config',
-    { locale: 'en', listmonkEndpoint: '', listmonkList: '', buyUrl: '' },
+    { locale: 'en', subscribeEndpoint: '/api/subscribe', buyUrl: '' },
   );
 
   const fileInput = $<HTMLInputElement>('file-input');
@@ -90,11 +90,31 @@ export function initApp() {
   // Bundled styles (free + basic) plus premium styles loaded at runtime from a
   // purchased pack. Premium is NEVER in the build — only in the bought ZIP.
   const premiumBuilders: Record<string, HfPresetBuilder> = {};
+  // Public, css-only previews of premium styles (the look, not the animation
+  // and not the renderable preset). Used so buyers can preview on their video.
+  const previewBuilders: Record<string, HfPresetBuilder> = {};
   const getBuilder = (slug: string): HfPresetBuilder =>
-    PRESETS[slug] ?? premiumBuilders[slug] ?? PRESETS['text'];
+    PRESETS[slug] ?? premiumBuilders[slug] ?? previewBuilders[slug] ?? PRESETS['text'];
   function registerPremium(list: PremiumPreset[]) {
     for (const p of list) {
       premiumBuilders[p.slug] = () => ({ css: p.css, timelineJs: p.timelineJs });
+    }
+  }
+  function registerPreviews(list: { slug: string; css: string }[]) {
+    for (const p of list) previewBuilders[p.slug] = () => ({ css: p.css });
+  }
+  async function loadPreviews() {
+    try {
+      const res = await fetch('/premium-previews.json');
+      if (!res.ok) return;
+      registerPreviews((await res.json()) as { slug: string; css: string }[]);
+      // If the user already picked a premium style before previews arrived,
+      // render it now.
+      if (currentTier === 'premium' && !premiumBuilders[currentSlug] && previewBuilders[currentSlug]) {
+        previewPreset(currentSlug, currentTier);
+      }
+    } catch {
+      /* no previews available (e.g. free build) */
     }
   }
 
@@ -212,10 +232,16 @@ export function initApp() {
   }
 
   function selectPreset(slug: string, tier: string) {
-    // Premium not loaded yet -> point the user at the buy/load panel.
+    // Premium not unlocked yet: still preview the LOOK (css-only) on the video so
+    // the user sees what they're buying, and nudge them to the buy/key panel.
     if (tier === 'premium' && !premiumBuilders[slug]) {
       const status = $('premium-status');
-      if (status) status.textContent = tr('premium', 'needPack');
+      if (previewBuilders[slug]) {
+        previewPreset(slug, tier);
+        if (status) status.textContent = tr('premium', 'previewHint');
+      } else if (status) {
+        status.textContent = tr('premium', 'needPack');
+      }
       $('premium-panel')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       return;
     }
@@ -433,14 +459,14 @@ export function initApp() {
     if (widget && !hooks().skipAltcha && !altchaInput?.value) return setS(tr('email', 'waiting'));
     setS(tr('email', 'submitting'));
     try {
-      const res = await fetch(cfg.listmonkEndpoint, {
+      const res = await fetch(cfg.subscribeEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
-          list_uuids: [cfg.listmonkList],
-          altcha: altchaInput?.value,
-          attribs: { source: 'captions.web', locale: cfg.locale },
+          consent: true,
+          altcha: altchaInput?.value ?? '',
+          locale: cfg.locale,
         }),
       });
       if (res.ok) {
@@ -519,6 +545,8 @@ export function initApp() {
   };
   langSelect?.addEventListener('change', syncModelToLang);
   syncModelToLang();
+
+  void loadPreviews();
 
   // restore unlock state on load
   if (isUnlocked()) {

@@ -10,7 +10,7 @@
  * The premium presets are NEVER bundled into the web app; this pack is the
  * only way to get them, and it's delivered only after purchase.
  */
-import { readdirSync, mkdirSync, writeFileSync, copyFileSync, rmSync, readFileSync, existsSync } from 'node:fs';
+import { readdirSync, mkdirSync, writeFileSync, copyFileSync, rmSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -29,13 +29,19 @@ const PRESET_INPUT = {
 };
 
 const FN_ASSET = join(ROOT, 'apps', 'web', 'functions', '_premium-assets.json');
+// Public, client-loadable previews: ONLY the look (css), never timelineJs and
+// never the renderable preset. Lets buyers see a style on their own video
+// before purchase; the animation + CLI pack stay gated behind a license key.
+const PREVIEWS_FILE = join(ROOT, 'apps', 'web', 'public', 'premium-previews.json');
 
-// Free clone / public build: no private packs -> write an empty stub so the
-// functions still bundle (and serve nothing). No premium ever leaks.
+// Free clone / public build: no private packs -> write empty stubs so the
+// functions still bundle and the client just shows no previews. Nothing leaks.
 if (!existsSync(PREMIUM_DIR)) {
   mkdirSync(dirname(FN_ASSET), { recursive: true });
-  writeFileSync(FN_ASSET, JSON.stringify({ presets: [], zipBase64: '' }));
-  console.log('No premium packs present — wrote empty premium-assets stub.');
+  writeFileSync(FN_ASSET, JSON.stringify({ presets: [] }));
+  mkdirSync(dirname(PREVIEWS_FILE), { recursive: true });
+  writeFileSync(PREVIEWS_FILE, JSON.stringify([]));
+  console.log('No premium packs present — wrote empty premium-assets + previews stubs.');
   process.exit(0);
 }
 
@@ -82,16 +88,23 @@ const zipPath = join(OUT_DIR, 'captions-premium.zip');
 const res = spawnSync('zip', ['-r', '-q', zipPath, 'captions-premium'], { cwd: OUT_DIR });
 if (res.status !== 0) throw new Error('zip failed (is `zip` installed?)');
 
-// Private asset for the CF Pages Functions: the gated premium JSON + the zip
-// (base64) the Worker serves only to verified buyers. NEVER in the static
-// build, NEVER public — bundled into the server-side function only.
-const zipBase64 = readFileSync(zipPath).toString('base64');
+// Private asset for the CF Pages Functions: the gated premium preset JSON the
+// Worker serves only to verified buyers (for /api/premium). NEVER in the static
+// build, NEVER public. The ZIP itself is NOT embedded here — it's uploaded to R2
+// and streamed by /api/premium-zip (see scripts/deploy-web.sh).
 const fnDir = join(ROOT, 'apps', 'web', 'functions');
 mkdirSync(fnDir, { recursive: true });
 writeFileSync(
   join(fnDir, '_premium-assets.json'),
-  JSON.stringify({ presets, zipBase64 }),
+  JSON.stringify({ presets }),
 );
 
-console.log(`Wrote ${zipPath} + functions/_premium-assets.json with ${presets.length} premium styles.`);
+// Public previews: css only (the look). No timelineJs, no slug->definition.
+mkdirSync(dirname(PREVIEWS_FILE), { recursive: true });
+writeFileSync(
+  PREVIEWS_FILE,
+  JSON.stringify(presets.map((p) => ({ slug: p.slug, css: p.css }))),
+);
+
+console.log(`Wrote ${zipPath} + functions/_premium-assets.json + public/premium-previews.json with ${presets.length} premium styles.`);
 console.log(`Styles: ${presets.map((p) => p.slug).join(', ')}`);

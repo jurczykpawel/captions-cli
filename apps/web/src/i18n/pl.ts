@@ -96,8 +96,11 @@ export const pl: Dict = {
   },
   premium: {
     panelHeading: 'Style premium',
-    panelBody: 'Kup raz — odblokuj premium tu w przeglądarce i pobierz paczkę do CLI. Po zakupie wyślemy klucz licencyjny mailem; wklej go poniżej.',
+    panelBody: 'Kup raz — odblokuj premium tu w przeglądarce i pobierz paczkę do CLI. Po zakupie wyślemy klucz licencyjny mailem.',
     needPack: 'Styl premium. Kup go, potem wklej klucz licencyjny z maila poniżej.',
+    previewHint: 'Podgląd na Twoim wideo. Kup, żeby eksportować bez znaku wodnego i z pełną animacją.',
+    buyBtn: 'Kup premium',
+    haveKey: 'Masz już klucz? Wklej go:',
     keyPlaceholder: 'Klucz licencyjny (cap_…)',
     unlockBtn: 'Odblokuj',
     downloadCli: 'Pobierz paczkę do CLI (.zip)',

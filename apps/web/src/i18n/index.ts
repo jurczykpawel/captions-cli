@@ -67,6 +67,9 @@ export interface Dict {
     panelHeading: string;
     panelBody: string;
     needPack: string;
+    previewHint: string;
+    buyBtn: string;
+    haveKey: string;
     keyPlaceholder: string;
     unlockBtn: string;
     downloadCli: string;

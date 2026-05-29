@@ -3,7 +3,7 @@
 // never in the static site), so premium is served only by these gated endpoints.
 import assets from '../_premium-assets.json';
 
-export { verifyHmacHex, normEmail, entitlementKey, generateLicenseKey, b64ToBytes, json } from './crypto';
+export { verifyHmacHex, normEmail, entitlementKey, generateLicenseKey, json } from './crypto';
 export { sendLicenseEmail } from './ses';
 
 export interface PremiumPreset {
@@ -15,14 +15,17 @@ export interface PremiumPreset {
 }
 
 export const PREMIUM_PRESETS = (assets as { presets: PremiumPreset[] }).presets ?? [];
-export const PREMIUM_ZIP_B64 = (assets as { zipBase64: string }).zipBase64 ?? '';
 
 /** Sellf product slug that grants this premium pack. */
 export const PREMIUM_SLUG = 'captions-premium-styles';
 
-/** Minimal KV shape (avoids pulling @cloudflare/workers-types). */
+/** R2 object key for the buyer's CLI pack ZIP. */
+export const PREMIUM_ZIP_KEY = 'captions-premium.zip';
+
+/** Minimal binding shapes (avoids pulling @cloudflare/workers-types). */
 export interface Env {
   PREMIUM: { get(key: string): Promise<string | null>; put(key: string, value: string): Promise<void> };
+  PREMIUM_BUCKET: { get(key: string): Promise<{ body: ReadableStream } | null> };
   SELLF_WEBHOOK_SECRET: string;
   SES_ACCESS_KEY_ID: string;
   SES_SECRET_ACCESS_KEY: string;
