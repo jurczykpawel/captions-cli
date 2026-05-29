@@ -63,7 +63,18 @@ export interface Dict {
     loadPack: string;
     getPremium: string;
   };
-  premium: { panelHeading: string; panelBody: string; needPack: string; loading: string; loaded: string; error: string };
+  premium: {
+    panelHeading: string;
+    panelBody: string;
+    needPack: string;
+    emailPlaceholder: string;
+    unlockBtn: string;
+    downloadCli: string;
+    badEmail: string;
+    notFound: string;
+    loaded: string;
+    error: string;
+  };
   cli: { heading: string; body: string; cta: string };
   footer: { tagline: string; madeBy: string; brand: string; tos: string; privacy: string; source: string };
   legal: { privacyTitle: string; termsTitle: string; back: string };

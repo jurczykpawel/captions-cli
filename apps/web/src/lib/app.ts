@@ -40,6 +40,7 @@ const EXPORT_FPS = 30;
 const UNLOCK_KEY = 'captions:emailUnlocked';
 const PREMIUM_KEY = 'captions:premium';
 const PREMIUM_PACK_KEY = 'captions:premiumPack';
+const PREMIUM_EMAIL_KEY = 'captions:premiumEmail';
 const WATERMARK_TEXT = 'captions.techskills.academy';
 
 interface PremiumPreset {
@@ -336,47 +337,61 @@ export function initApp() {
     openEmailDialog();
   });
 
-  // ---- premium pack (the .zip bought via Sellf, loaded here or used in CLI) ----
-  const premiumFileInput = $<HTMLInputElement>('premium-file');
-  const loadPremiumBtn = $<HTMLButtonElement>('load-premium-btn');
+  // ---- premium unlock (enter the email you bought with -> gated Worker) ----
+  const premiumEmailInput = $<HTMLInputElement>('premium-email');
+  const unlockPremiumBtn = $<HTMLButtonElement>('unlock-premium-btn');
   const buyPremiumBtn = $<HTMLAnchorElement>('buy-premium-btn');
+  const downloadCliLink = $<HTMLAnchorElement>('download-cli-link');
   const premiumStatus = $('premium-status');
+  const normEmail = (e?: string) => (e ?? '').trim().toLowerCase();
 
-  function unlockPremiumUi() {
+  function unlockPremiumUi(email: string) {
     document.querySelectorAll<HTMLElement>('.preset-card[data-tier="premium"]').forEach((c) =>
       c.classList.remove('is-locked'),
     );
-  }
-
-  async function handlePremiumPack(f: File) {
-    const setS = (s: string) => {
-      if (premiumStatus) premiumStatus.textContent = s;
-    };
-    try {
-      setS(tr('premium', 'loading'));
-      const buf = new Uint8Array(await f.arrayBuffer());
-      const { unzipSync, strFromU8 } = await import('fflate');
-      const entries = unzipSync(buf);
-      const key = Object.keys(entries).find((k) => k.endsWith('premium-pack.json'));
-      if (!key) throw new Error('premium-pack.json missing');
-      const list = JSON.parse(strFromU8(entries[key])) as PremiumPreset[];
-      if (!Array.isArray(list) || list.length === 0) throw new Error('empty pack');
-      registerPremium(list);
-      localStorage.setItem(PREMIUM_PACK_KEY, JSON.stringify(list));
-      localStorage.setItem(PREMIUM_KEY, '1');
-      unlockPremiumUi();
-      hideUnlockCta();
-      setS(tr('premium', 'loaded'));
-      if (cues) previewPreset(currentSlug, currentTier);
-    } catch {
-      setS(tr('premium', 'error'));
+    if (downloadCliLink) {
+      downloadCliLink.href = `/api/premium-zip?email=${encodeURIComponent(email)}`;
+      downloadCliLink.hidden = false;
     }
   }
 
-  loadPremiumBtn?.addEventListener('click', () => premiumFileInput?.click());
-  premiumFileInput?.addEventListener('change', () => {
-    const f = premiumFileInput.files?.[0];
-    if (f) void handlePremiumPack(f);
+  async function unlockPremium(email: string, opts?: { silent?: boolean }): Promise<boolean> {
+    const setS = (s: string) => {
+      if (premiumStatus && !opts?.silent) premiumStatus.textContent = s;
+    };
+    try {
+      const res = await fetch('/api/premium', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      if (!res.ok) {
+        setS(tr('premium', 'notFound'));
+        return false;
+      }
+      const data = (await res.json()) as { presets: PremiumPreset[] };
+      registerPremium(data.presets);
+      localStorage.setItem(PREMIUM_PACK_KEY, JSON.stringify(data.presets));
+      localStorage.setItem(PREMIUM_EMAIL_KEY, email);
+      localStorage.setItem(PREMIUM_KEY, '1');
+      unlockPremiumUi(email);
+      hideUnlockCta();
+      setS(tr('premium', 'loaded'));
+      if (cues) previewPreset(currentSlug, currentTier);
+      return true;
+    } catch {
+      setS(tr('premium', 'error'));
+      return false;
+    }
+  }
+
+  unlockPremiumBtn?.addEventListener('click', () => {
+    const email = normEmail(premiumEmailInput?.value);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      if (premiumStatus) premiumStatus.textContent = tr('premium', 'badEmail');
+      return;
+    }
+    void unlockPremium(email);
   });
   if (cfg.buyUrl && buyPremiumBtn) buyPremiumBtn.href = cfg.buyUrl;
 
@@ -513,13 +528,16 @@ export function initApp() {
     );
   }
   const savedPack = localStorage.getItem(PREMIUM_PACK_KEY);
-  if (savedPack) {
+  const savedEmail = localStorage.getItem(PREMIUM_EMAIL_KEY);
+  if (savedPack && savedEmail) {
     try {
       registerPremium(JSON.parse(savedPack) as PremiumPreset[]);
-      unlockPremiumUi();
+      unlockPremiumUi(savedEmail);
     } catch {
       /* ignore a corrupt saved pack */
     }
+    // Re-validate online so a revoked purchase loses access (offline keeps cache).
+    void unlockPremium(savedEmail, { silent: true });
   }
 
   window.addEventListener('resize', syncScale);

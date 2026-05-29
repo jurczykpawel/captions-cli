@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && node scripts/strip-dev.mjs",
+    "build": "bun ../../scripts/build-premium-pack.mjs && astro build && node scripts/strip-dev.mjs",
     "preview": "astro preview",
     "astro": "astro",
     "test:e2e": "playwright test"

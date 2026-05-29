@@ -10,7 +10,7 @@
  * The premium presets are NEVER bundled into the web app; this pack is the
  * only way to get them, and it's delivered only after purchase.
  */
-import { readdirSync, mkdirSync, writeFileSync, copyFileSync, rmSync } from 'node:fs';
+import { readdirSync, mkdirSync, writeFileSync, copyFileSync, rmSync, readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -27,6 +27,17 @@ const PRESET_INPUT = {
   upcomingColor: '#9aa3af',
   fontSize: 64,
 };
+
+const FN_ASSET = join(ROOT, 'apps', 'web', 'functions', '_premium-assets.json');
+
+// Free clone / public build: no private packs -> write an empty stub so the
+// functions still bundle (and serve nothing). No premium ever leaks.
+if (!existsSync(PREMIUM_DIR)) {
+  mkdirSync(dirname(FN_ASSET), { recursive: true });
+  writeFileSync(FN_ASSET, JSON.stringify({ presets: [], zipBase64: '' }));
+  console.log('No premium packs present — wrote empty premium-assets stub.');
+  process.exit(0);
+}
 
 const files = readdirSync(PREMIUM_DIR).filter((f) => f.endsWith('.ts'));
 const presets = [];
@@ -71,5 +82,16 @@ const zipPath = join(OUT_DIR, 'captions-premium.zip');
 const res = spawnSync('zip', ['-r', '-q', zipPath, 'captions-premium'], { cwd: OUT_DIR });
 if (res.status !== 0) throw new Error('zip failed (is `zip` installed?)');
 
-console.log(`Wrote ${zipPath} with ${presets.length} premium styles.`);
+// Private asset for the CF Pages Functions: the gated premium JSON + the zip
+// (base64) the Worker serves only to verified buyers. NEVER in the static
+// build, NEVER public — bundled into the server-side function only.
+const zipBase64 = readFileSync(zipPath).toString('base64');
+const fnDir = join(ROOT, 'apps', 'web', 'functions');
+mkdirSync(fnDir, { recursive: true });
+writeFileSync(
+  join(fnDir, '_premium-assets.json'),
+  JSON.stringify({ presets, zipBase64 }),
+);
+
+console.log(`Wrote ${zipPath} + functions/_premium-assets.json with ${presets.length} premium styles.`);
 console.log(`Styles: ${presets.map((p) => p.slug).join(', ')}`);

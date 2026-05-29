@@ -1,0 +1,13 @@
+name = "captions"
+pages_build_output_dir = "dist"
+compatibility_date = "2024-11-01"
+
+# Premium entitlements written by the Sellf webhook, read by /api/premium.
+# Set `id` after creating the namespace:
+#   wrangler kv namespace create PREMIUM
+[[kv_namespaces]]
+binding = "PREMIUM"
+id = "PLACEHOLDER_SET_AFTER_CREATE"
+
+# SELLF_WEBHOOK_SECRET is a Pages secret (dashboard or `wrangler pages secret put`),
+# not committed here.

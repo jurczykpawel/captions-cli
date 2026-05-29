@@ -115,10 +115,11 @@ const label = (slug: string) =>
               <p class="faint">{t.premium.panelBody}</p>
             </div>
             <div class="premium-panel__actions">
-              <input type="file" id="premium-file" accept=".zip,application/zip" hidden />
-              <button class="btn btn--ghost" id="load-premium-btn" type="button">{t.ws.loadPack}</button>
+              <input type="email" id="premium-email" placeholder={t.premium.emailPlaceholder} autocomplete="email" />
+              <button class="btn btn--ghost" id="unlock-premium-btn" type="button">{t.premium.unlockBtn}</button>
               <a class="btn btn--primary" id="buy-premium-btn" href={config.buyUrl} target="_blank" rel="noopener">{t.ws.getPremium}</a>
             </div>
+            <a class="btn btn--ghost" id="download-cli-link" hidden>{t.premium.downloadCli}</a>
             <p class="faint" id="premium-status" aria-live="polite"></p>
           </div>
         </div>
