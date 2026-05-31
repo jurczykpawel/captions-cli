@@ -10,7 +10,7 @@ interface Env {
   LISTMONK_LIST_UUID?: string;
 }
 
-const DEFAULT_URL = 'https://mail.techskills.academy/api/public/subscription';
+const DEFAULT_URL = 'https://mailing.techskills.academy/api/public/subscription';
 const DEFAULT_LIST = '3836801a-e2d6-4fbb-9351-634623fe9812'; // "Captions Web"
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
