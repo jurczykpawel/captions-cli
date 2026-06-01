@@ -121,6 +121,8 @@ export const en: Dict = {
     tos: 'Terms',
     privacy: 'Privacy',
     source: 'Source on GitHub',
+    tools: 'Tools',
+    openSource: 'Open source',
   },
   legal: {
     privacyTitle: 'Privacy Policy',

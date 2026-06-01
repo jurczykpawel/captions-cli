@@ -121,6 +121,8 @@ export const pl: Dict = {
     tos: 'Regulamin',
     privacy: 'Prywatność',
     source: 'Kod na GitHubie',
+    tools: 'Narzędzia',
+    openSource: 'Open source',
   },
   legal: {
     privacyTitle: 'Polityka prywatności',
