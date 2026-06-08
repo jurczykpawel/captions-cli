@@ -7,8 +7,8 @@
 #   ./scripts/install-pack.sh premium    # free + basic + premium (full)
 #
 # This is build-time tooling. The .ts files in packs/ are gitignored
-# (basic + premium are paid). Free presets live in source control
-# (engine-ass: clean-white.ts, engine-hf: text.ts).
+# (basic + premium are paid). The free preset lives in source control
+# (engine-hf: text.ts).
 
 set -euo pipefail
 
@@ -47,8 +47,7 @@ install_engine() {
   echo "   [$engine] active presets: $count"
 }
 
-install_engine ass "$ROOT/packages/engine-ass/src/presets" clean-white.ts
-install_engine hf  "$ROOT/packages/engine-hf/src/presets"  text.ts
+install_engine hf "$ROOT/packages/engine-hf/src/presets" text.ts
 
 echo
-echo "Installed tier: $TIER (both engines)"
+echo "Installed tier: $TIER"

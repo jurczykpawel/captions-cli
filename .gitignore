@@ -8,8 +8,8 @@ dist
 *-captioned.mp4
 # Paid caption packs — basic + premium .ts files NEVER ship in the
 # public repo. Repopulated at build time by scripts/install-pack.sh.
-# The free pack (clean-white) lives in source as
-# packages/engine-ass/src/presets/clean-white.ts.
+# The free pack (text) lives in source as
+# packages/engine-hf/src/presets/text.ts.
 packs/
 dist-pack/
 

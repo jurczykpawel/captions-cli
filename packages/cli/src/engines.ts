@@ -8,11 +8,9 @@
  */
 import type { CaptionEngine } from '@captions-cli/core';
 import { hfEngine } from '@captions-cli/engine-hf';
-import { assEngine } from '@captions-cli/engine-ass';
 
 export const ENGINES: Record<string, CaptionEngine> = {
   [hfEngine.id]: hfEngine,
-  [assEngine.id]: assEngine,
 };
 
 export function listEngines(): string[] {

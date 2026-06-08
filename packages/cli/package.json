@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@captions-cli/core": "workspace:*",
-    "@captions-cli/engine-ass": "workspace:*",
     "@captions-cli/engine-hf": "workspace:*"
   }
 }

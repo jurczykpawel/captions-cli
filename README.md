@@ -12,9 +12,9 @@ your machine, with open-source tools, with no monthly fee, and your video never 
 laptop.
 
 ```bash
-captions reel.mp4                                   # free style (clean-white)
-captions reel.mp4 --preset hormozi --lang pl        # basic pack
-captions reel.mp4 --preset single-word-pop          # premium pack
+captions reel.mp4                                   # free style (text)
+captions reel.mp4 --preset pill --lang pl           # basic pack
+captions reel.mp4 --preset hormozi                  # premium pack
 # → reel-captioned.mp4
 ```
 
@@ -31,7 +31,7 @@ You don't need to know how to code. You need [Docker Desktop](https://www.docker
 4. **Paste this one line** and press Enter. Change `reel.mp4` to your filename, and `en` to
    your spoken language (`pl`, `de`, `es`, …):
    ```bash
-   docker run --rm -v "$PWD:/work" -v captions-cache:/data ghcr.io/jurczykpawel/captions-cli:slim /work/reel.mp4 --lang en
+   docker run --rm -v "$PWD:/work" -v captions-cache:/data ghcr.io/jurczykpawel/captions-cli:latest /work/reel.mp4 --lang en
    ```
    On **Windows** use `"%cd%:/work"` instead of `"$PWD:/work"`.
 5. **Done.** A new `reel-captioned.mp4` appears next to your video. The first run downloads a
@@ -62,51 +62,38 @@ Then, from anywhere:
 captions reel.mp4 --lang pl
 captions ~/Videos/talk.mp4 --lang en
 captions --list-presets
-# HF engine / other styles: point the wrapper at a different image
-CAPTIONS_IMAGE=ghcr.io/jurczykpawel/captions-cli:full captions reel.mp4 --engine hf
 ```
 
 Still uses the Docker image under the hood (so Docker must be running) — but nothing else to
 install. Want a **native** binary with no Docker at all? That's also a real `captions` command —
 see [Install](#install) (Options B, C, E).
 
-## Style packs (ASS engine)
+## Style packs
 
-The ASS engine ships **25 caption presets organized into three packs**. Free pack is
-included in the public Docker image. Basic and Premium are paid one-time downloads
-shipped as separate Docker tags.
+Captions are organized into **three tiers**. The free `text` preset ships in the public
+image; basic and premium unlock with a one-time [Sellf](https://sellf.techskills.academy)
+license token (basic is free — confirm your email; premium is a one-time purchase). One
+token unlocks both the web app and the CLI pack download.
 
-| Pack | Count | Price | Includes |
-|---|---|---|---|
-| **Free** | 1 | included | `clean-white` — bold white + heavy black outline. Always readable. |
-| **Basic** | 4 | **47 PLN** *(one-time)* | Free + `outline-pop`, `hormozi`, `pill`, `pop-word` |
-| **Premium** | 20 | **97 PLN** *(one-time)* | Basic + 20 premium styles (color variants, single-word, news-ticker, mrbeast, neon-*, karaoke-*, cinema-classic, …) |
-
-Preview grids:
-
-| Free | Basic | Premium |
+| Tier | What | Unlock |
 |---|---|---|
-| ![free](assets/previews/grids/free.png) | ![basic](assets/previews/grids/basic.png) | ![premium](assets/previews/grids/premium.png) |
+| **Free** | `text` — plain white captions. Always readable. | included |
+| **Basic** | a handful of word-timing styles (`box-highlight`, `pill`, …) | free — email on Sellf → token |
+| **Premium** | the full catalogue (glow, hormozi, outline-pop, single-word, underline-sweep, pop-word, paper-cutout, hype, …) | one-time purchase → token |
 
-Run `captions --list-presets` to see the full grouped catalog. See [`PACKS.md`](PACKS.md)
-for the design rationale behind the split (which look serves which use case).
+Run `captions --list-presets` to see what's installed. See [`PACKS.md`](PACKS.md) for the
+tier design and the licensing model.
 
-## Two render engines
+## Render engine
 
-The CLI dispatches to one of two engines via `--engine`:
-
-| Engine | What it uses | Image | Render speed (41 s clip) | Style pack support |
-|---|---|---|---|---|
-| **`ass`** *(default)* | `ffmpeg` + `libass` (no browser) | **~870 MB** | **~3 s** | Free / Basic / Premium pack split (this is where the catalog lives) |
-| **`hf`** | Hyperframes (HTML+CSS+GSAP via headless Chromium) | ~1.6 GB | ~40 s | 9 universal presets — full CSS power for exact fidelity (filter blur, 3-D transforms) |
-
-Both engines produce valid karaoke captions with the same word-level timing. Pick `hf`
-when you need CSS-perfect effects that libass simplifies (multi-layer glow, easing curves).
+Captions render through the **HF engine** — Hyperframes (HTML+CSS+GSAP via headless
+Chromium), the same `{css, timelineJs}` format the web app uses. It needs `ffmpeg` (mux)
+plus `hyperframes` (which provisions its own headless Chromium); a 41 s clip renders in
+~40 s. `--engine` defaults to `hf`.
 
 ```bash
-captions reel.mp4                              # ASS, free pack default
-captions reel.mp4 --engine hf                  # opt in for full CSS power
-captions reel.mp4 --engine hf --preset glow    # HF-only CSS glow
+captions reel.mp4                  # free `text` preset
+captions reel.mp4 --preset glow    # a premium style (needs the premium pack)
 ```
 
 ## Why this exists
@@ -115,8 +102,8 @@ Submagic is 19-69 USD/month. CapCut Pro is 89 PLN/month. Veed.io is 25 EUR/month
 Creator is 24 USD/month. They all run [Whisper](https://github.com/openai/whisper) (open-source
 since 2022) plus [ffmpeg](https://ffmpeg.org) (open-source since 2000). Your laptop has both.
 
-A 60-second reel transcribes in ~3 s on an M-series Mac and burns captions in another ~3 s with
-the ASS engine. End-to-end: under 10 seconds, free, offline.
+A 60-second reel transcribes in ~3 s on an M-series Mac, then the HF engine burns the
+captions. Free, offline, no watermark.
 
 This CLI is the open-source companion to a TechSkills Academy guide on captioning video locally.
 Free, MIT-licensed, no watermark.
@@ -127,25 +114,19 @@ Pick one. Listed easiest → most flexible.
 
 ### Option A — Docker (zero local deps)
 
-Two image variants. **Pre-built images are published to GHCR with each
-[release](https://github.com/jurczykpawel/captions-cli/releases)** (tags `:slim` / `:full`,
-plus the version, e.g. `:1.0.0-slim`):
+**Pre-built images are published to GHCR with each
+[release](https://github.com/jurczykpawel/captions-cli/releases)** (tags `:latest` / `:full`,
+plus the version, e.g. `:1.0.0`). The image carries ffmpeg, whisper.cpp, hyperframes +
+headless Chromium and the compiled binary (~1.6 GB, linux/amd64; on Apple Silicon it runs
+under emulation):
 
 ```bash
-# SLIM: ass engine only. ~870 MB. Recommended for most use cases.
-docker pull ghcr.io/jurczykpawel/captions-cli:slim
+docker pull ghcr.io/jurczykpawel/captions-cli:latest
 docker run --rm \
   -v "$PWD:/work" \
   -v "captions-cache:/data" \
-  ghcr.io/jurczykpawel/captions-cli:slim \
+  ghcr.io/jurczykpawel/captions-cli:latest \
   /work/reel.mp4 --lang pl
-
-# FULL: ass + hf. ~1.6 GB. Use when you need --engine hf. (linux/amd64 only;
-# on Apple Silicon it runs under emulation — for arm64-native use :slim.)
-docker pull ghcr.io/jurczykpawel/captions-cli:full
-docker run --rm -v "$PWD:/work" -v "captions-cache:/data" \
-  ghcr.io/jurczykpawel/captions-cli:full \
-  /work/reel.mp4 --engine hf --preset glow
 ```
 
 The named volume `captions-cache` persists the Whisper model (~140 MB) — the first run
@@ -156,27 +137,22 @@ Or build the image yourself (always works, no release needed):
 ```bash
 git clone https://github.com/jurczykpawel/captions-cli
 cd captions-cli
-docker build -f Dockerfile.slim -t captions-cli:slim .   # ass engine, free pack
-# docker build -f Dockerfile.full -t captions-cli:full .  # + hf engine
-docker run --rm -v "$PWD:/work" -v "captions-cache:/data" captions-cli:slim /work/reel.mp4 --lang pl
+docker build -f Dockerfile.full -t captions-cli .
+docker run --rm -v "$PWD:/work" -v "captions-cache:/data" captions-cli /work/reel.mp4 --lang pl
 ```
 
-> The public image ships the **free** `clean-white` preset. Paid packs are built into private
+> The public image ships the **free** `text` preset. Paid packs are built into private
 > images — see [Building images with paid packs](#building-images-with-paid-packs).
 
 ### Option B — one-liner installer (Mac + Linux)
 
 ```bash
-# ASS engine only (default)
 curl -fsSL https://raw.githubusercontent.com/jurczykpawel/captions-cli/main/install.sh | bash
-
-# also install the HF engine (hyperframes)
-curl -fsSL https://raw.githubusercontent.com/jurczykpawel/captions-cli/main/install.sh | bash -s -- --with-hf
 ```
 
-Installs `ffmpeg`, `whisper-cpp` and `bun`, then **builds** the `captions` binary from source
-and drops it into `/usr/local/bin`. Idempotent — safe to re-run. The installer checks whether
-your `ffmpeg` has libass and warns if not (the ASS engine needs it — see Troubleshooting).
+Installs `ffmpeg`, `whisper-cpp`, `bun` and `hyperframes` (the HF engine, which provisions
+its own headless Chromium), then **builds** the `captions` binary from source and drops it
+into `/usr/local/bin`. Idempotent — safe to re-run.
 
 ### Option C — pre-built binary (no Node, no Bun)
 
@@ -184,15 +160,14 @@ Grab the binary for your OS from [Releases](https://github.com/jurczykpawel/capt
 (available from v1.0.0 on), then install the system tools manually:
 
 ```bash
-brew install ffmpeg whisper-cpp           # Mac. Note: brew's stock ffmpeg
-                                          # may lack libass — see Troubleshooting.
-sudo apt install ffmpeg                   # Linux (whisper.cpp from source)
+brew install ffmpeg whisper-cpp           # Mac
+sudo apt install ffmpeg                    # Linux (whisper.cpp from source)
+npm install -g hyperframes                 # HF engine (needs Node 22+ once)
 chmod +x /usr/local/bin/captions
 ```
 
-For HF engine: also `npm install -g hyperframes` (needs Node 22+ once).
-
-The binary is ~60 MB (Bun runtime is baked in). No Node/Bun required to **run** it.
+`hyperframes` provisions its own headless Chromium on first use. The binary is ~60 MB
+(Bun runtime is baked in). No Node/Bun required to **run** the binary itself.
 
 ### Option D — VPS via Stackpilot (`./local/deploy.sh captions-cli`)
 
@@ -200,8 +175,7 @@ If you already use [Stackpilot](https://github.com/jurczykpawel/stackpilot) to m
 captions-cli ships as a built-in app:
 
 ```bash
-./local/deploy.sh captions-cli                # installs slim image (~870 MB)
-VARIANT=full ./local/deploy.sh captions-cli   # if you need --engine hf
+./local/deploy.sh captions-cli                # installs the image (~1.6 GB)
 ```
 
 The installer pulls the Docker image and drops a `/usr/local/bin/captions` wrapper that mounts
@@ -213,7 +187,7 @@ cd ~/captions
 captions reel.mp4 --preset hormozi --lang pl
 ```
 
-Same UX as local Docker (Option A), zero hosting setup. Works on a 1 GB Mikrus with `slim`.
+Same UX as local Docker (Option A), zero hosting setup.
 
 ### Option E — from source (developers)
 
@@ -233,45 +207,39 @@ bun run build                             # → ./dist/captions
 
 ## Project layout
 
-This is a **Bun workspaces monorepo**. Each engine is its own package; the CLI dispatches
-between them by `--engine` flag.
+This is a **Bun workspaces monorepo**. The render engine is a package the CLI dispatches
+by `--engine` flag (currently one: `hf`).
 
 ```
 captions-cli/
 ├── package.json                 # workspaces: ["packages/*"]
 ├── packages/
 │   ├── core/                    # shared: types, ffprobe, transcribe, cue grouping
-│   ├── engine-hf/               # Hyperframes (CSS+GSAP) + presets/
+│   ├── engine-hf/               # Hyperframes (CSS+GSAP) + presets/  — the only engine
 │   │   └── src/presets/         # only `text.ts` ships in git; basic + premium
 │   │                            # are gitignored, repopulated at build time
-│   ├── engine-ass/              # ffmpeg+libass + presets/
-│   │   └── src/presets/         # only `clean-white.ts` ships in git; basic +
-│   │                            # premium are gitignored, repopulated at build time
 │   └── cli/                     # bin entry, dispatcher
-├── packs/                       # GITIGNORED — paid pack source, per engine
-│   ├── ass/{basic,premium}/     # ffmpeg+libass preset packs
+├── packs/                       # GITIGNORED — paid pack source
 │   └── hf/{basic,premium}/      # Hyperframes preset packs
+├── apps/web/                    # in-browser captioner (Astro + CF Pages)
 ├── scripts/
 │   ├── install-pack.sh          # `./install-pack.sh <free|basic|premium>`
 │   ├── generate-presets-index.mjs   # auto-generates presets/index.ts
-│   ├── demo-packs.sh            # renders every preset → ~/Downloads/caption-packs-demo/
-│   └── demo-final.sh            # legacy 9-preset demo
-├── assets/previews/             # 25 preview PNGs + 3 grids (committed)
-├── PACKS.md                     # design rationale for the 3-tier split
-├── Dockerfile.slim              # ASS-only (~870 MB)
-├── Dockerfile.full              # ASS + HF (~1.6 GB)
+│   └── deploy-web.sh            # build + deploy the web app
+├── PACKS.md                     # tier design + licensing model
+├── Dockerfile.full              # the image (HF engine, ~1.6 GB)
 ├── install.sh                   # Mac + Linux installer
 └── README.md
 ```
 
 ### Building images with paid packs
 
-The public repo ships only the free `clean-white` preset. Owners of the basic/premium packs
-drop the `.ts` files into `packs/` and bake them into a private image:
+The public repo ships only the free `text` preset. Owners of the basic/premium packs
+drop the `.ts` files into `packs/hf/` and bake them into a private image:
 
 ```bash
 ./scripts/install-pack.sh premium       # copies packs/* into presets/, regenerates index.ts
-docker build -f Dockerfile.slim -t captions-cli:slim-premium .
+docker build -f Dockerfile.full -t captions-cli:premium .
 ./scripts/install-pack.sh free          # restore git-clean state (free pack only)
 ```
 
@@ -280,23 +248,22 @@ docker build -f Dockerfile.slim -t captions-cli:slim-premium .
 `studio/index.html` is a self-contained HTML+JS app. Open it in any modern
 browser via `file://` — no server, no backend. Tweak typography / outline /
 animation / position with live CSS preview, then click **Download .ts** to
-get a ready-to-drop preset file. Move it into `packs/<engine>/premium/` (e.g.
-`packs/ass/premium/`), run `./scripts/install-pack.sh premium`, and the CLI sees your custom slug.
+get a ready-to-drop preset file. Move it into `packs/hf/premium/`, run
+`./scripts/install-pack.sh premium`, and the CLI sees your custom slug.
 
 ```bash
 open studio/index.html      # macOS
 xdg-open studio/index.html  # Linux
 ```
 
-The preview is a CSS approximation — the real ffmpeg+libass render may
-differ slightly for blur and outline rendering, but typography, colour,
-and active-state effects are pixel-accurate.
+The preview matches the HF render — typography, colour, and active-state
+effects are the same CSS the engine rasterises.
 
 ## Usage
 
 ```bash
 captions <video.mp4> [options]
-captions --list-presets [--engine hf|ass]
+captions --list-presets [--engine hf]
 captions --list-engines
 captions --help
 ```
@@ -304,7 +271,7 @@ captions --help
 Common recipes:
 
 ```bash
-# Default look (clean-white, free pack, English, ASS engine)
+# Default look (free `text` preset, English)
 captions reel.mp4
 
 # Polish, Hormozi-style, custom highlight colour (basic pack)
@@ -327,52 +294,22 @@ export OPENAI_API_KEY=sk-…
 captions reel.mp4 --whisper openai
 ```
 
-## Preset catalog (ASS engine)
+## Preset catalog
 
-Run `captions --list-presets` for the live grouped list. Each preset has a 6-second
-preview rendered at `assets/previews/<tier>/<slug>.png` — see [`PACKS.md`](PACKS.md) for
-the rationale behind the split.
+Run `captions --list-presets` for the live list of what's installed. Captions are a
+parametric model (animation × highlight mode × colours) split into three tiers, unlocked
+with a Sellf license token — see [Style packs](#style-packs).
 
-### Free pack (included)
-
-| Slug | Look |
-|---|---|
-| `clean-white` | **Default.** Bold white + 8 px black outline. Multi-word. No animation, no color highlight. Reads on any background. |
-
-### Basic pack — 47 PLN
-
-| Slug | Look |
-|---|---|
-| `outline-pop` | UPPERCASE + 10 px outline + active word in accent color. Submagic-style. |
-| `hormozi` | White Bold + active word in accent + scale 1.15. Business benchmark. |
-| `pill` | Solid colored pill bg behind active word. |
-| `pop-word` | White Bold + subtle scale bounce on active. Reads on any background. |
-
-### Premium pack — 97 PLN
-
-20 styles across all categories (single-word focus, color variants, decorative
-backgrounds, motion, cinematic). Includes basic + free.
-
-- **Single-word focus** — `single-word`, `single-word-pop`, `single-word-fade`
-- **Color variants** — `hormozi-red`, `hormozi-green`, `hormozi-cyan`, `neon-yellow`, `neon-cyan`, `neon-pink`
-- **Backgrounds** — `box-highlight`, `pill-shadow`, `news-ticker`
-- **Motion** — `bouncing`, `underline-sweep`
-- **High-energy** — `mrbeast`
-- **Karaoke** — `karaoke-fill`, `karaoke-shadow`
-- **Cinematic** — `subtitle-classic`, `whisper-mini`, `mono-block`
-
-### HF engine presets
-
-The HF engine ships **9 universal presets** independent of the pack split (`outline-pop`,
-`hormozi`, `pop-word`, `pill`, `glow`, `underline-sweep`, `box-highlight`, `single-word`,
-`text`). Pick HF when you need CSS-only effects like multi-layer glow.
+- **Free** — `text` (plain white captions, no word-timing highlight).
+- **Basic** — word-timing styles: `box-highlight`, `pill`.
+- **Premium** — the full catalogue: `glow`, `hormozi`, `outline-pop`, `pop-word`,
+  `single-word`, `underline-sweep`, `paper-cutout`, `paper-cutout-typed`, `hype`, …
 
 ## All options
 
 ```
---engine <name>          ass (default) | hf
---preset <slug>          ASS engine: 25 presets in 3 packs (see --list-presets). Default: clean-white
-                         HF engine: 9 universal presets. Default: outline-pop
+--engine <name>          hf (default)
+--preset <slug>          caption look (see --list-presets). Default: text
 --output <path>          Default: <input>-captioned.mp4
 --lang <code>            Whisper language (en, pl, de, fr, …). Default: en
 --color <hex>            Active word colour. Default: #F59E0B (amber)
@@ -393,14 +330,12 @@ input.mp4
        └─ ffmpeg → 16 kHz mono WAV (audio extract)
             └─ whisper-cpp / OpenAI → word-level timestamps
                  └─ groupWordsIntoCues → cues (≤5 words / ≤3 s each)
-                      ├─ engine=ass → libass → ffmpeg subtitles filter → MP4
-                      └─ engine=hf  → hyperframes → headless Chromium → MP4
+                      └─ engine=hf → hyperframes → headless Chromium → MP4
 ```
 
-Three colour states per word are tracked by:
-- **ASS**: inline tag transitions `\t(t1,t1+1,\c<color>)` flipping colour at word boundaries
-- **HF**: GSAP timeline applies `.word--past` / `.word--active` / `.word--upcoming` classes per
-  frame, CSS rules from the preset block style them
+Three colour states per word are tracked by the HF engine: a GSAP timeline applies
+`.word--past` / `.word--active` / `.word--upcoming` classes per frame, and the preset's
+CSS rules style them.
 
 Both engines respect the same 3 colours: past = `--font-color`, active = `--color`,
 upcoming = `--upcoming` (defaults to past when omitted).
@@ -443,9 +378,7 @@ dimmed grey and "fill in" as they're hit.
 |---|---|
 | `whisper-cli: command not found` | `brew install whisper-cpp` |
 | `ffmpeg: command not found` | `brew install ffmpeg` |
-| `ffmpeg was built without libass` (or `No such filter: 'subtitles'`) | Your ffmpeg lacks libass. Easiest: use the Docker image (ships it). Or `brew reinstall ffmpeg` (macOS) / rebuild with `--enable-libass`. Verify: `ffmpeg -filters \| grep subtitles`. Or switch engines: `--engine hf`. |
-| `hyperframes: command not found` *(only with `--engine hf`)* | `npm i -g hyperframes` (or `bun add -g hyperframes`). Slim image doesn't ship HF — use `:full`. |
-| `Unknown engine "hf"` from slim image | Slim is ASS-only. Use `:full` Docker image or install HF deps locally. |
+| `hyperframes: command not found` | `npm i -g hyperframes` (or `bun add -g hyperframes`). Or use the Docker image, which ships it. |
 | Wrong language detected | Pass `--lang pl` (or whatever) explicitly |
 | Captions misaligned | Try `--whisper-model ggml-large-v3-turbo.bin` |
 | `OpenAI Whisper failed: 401` | `export OPENAI_API_KEY=sk-…` |
@@ -456,8 +389,8 @@ dimmed grey and "fill in" as they're hit.
 
 MIT. Built on top of:
 
-- [ffmpeg](https://ffmpeg.org) + [libass](https://github.com/libass/libass) — LGPL/GPL/ISC
-- [Hyperframes](https://hyperframes.heygen.com) — Apache-2.0 (only `--engine hf`)
+- [ffmpeg](https://ffmpeg.org) — LGPL/GPL
+- [Hyperframes](https://hyperframes.heygen.com) — the HF render engine
 - [whisper.cpp](https://github.com/ggerganov/whisper.cpp) — MIT
 - [Bun](https://bun.com) — MIT (only at build time when compiling the standalone binary)
 

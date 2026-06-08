@@ -1,12 +1,13 @@
 # Contributing to captions-cli
 
-Thanks for your interest! This is a small, focused tool — bug fixes, new ASS/HF presets,
+Thanks for your interest! This is a small, focused tool — bug fixes, new HF presets,
 language/whisper tweaks, and docs improvements are all welcome.
 
 ## Dev setup
 
-Requires [Bun](https://bun.sh) ≥ 1.1, `ffmpeg` **built with libass**, and `whisper-cli`
-(from `whisper-cpp`).
+Requires [Bun](https://bun.sh) ≥ 1.1, `ffmpeg`, `whisper-cli` (from `whisper-cpp`), and
+`hyperframes` on PATH for the HF engine (`npm i -g hyperframes` — it provisions its own
+headless Chromium).
 
 ```bash
 git clone https://github.com/jurczykpawel/captions-cli
@@ -15,28 +16,21 @@ bun install
 bun run captions path/to/video.mp4 --lang en      # run from source
 ```
 
-Verify your ffmpeg has libass (the ASS engine needs it):
+Don't want to install the toolchain locally? Develop against the Docker image instead:
 
 ```bash
-ffmpeg -filters | grep subtitles    # must print a line; if empty, brew reinstall ffmpeg
-```
-
-No libass and don't want to install it? Develop against the Docker image instead:
-
-```bash
-docker build -f Dockerfile.slim -t captions-cli:slim .
-docker run --rm -v "$PWD:/work" -v captions-cache:/data captions-cli:slim /work/video.mp4 --lang en
+docker build -f Dockerfile.full -t captions-cli .
+docker run --rm -v "$PWD:/work" -v captions-cache:/data captions-cli /work/video.mp4 --lang en
 ```
 
 ## Project layout
 
-Bun workspaces monorepo. Each engine is its own package; the CLI dispatches by `--engine`.
+Bun workspaces monorepo. The render engine is a package the CLI dispatches by `--engine`.
 
 ```
 packages/
   core/         shared types, ffprobe, transcribe, cue grouping
-  engine-ass/   ffmpeg + libass renderer + presets/
-  engine-hf/    Hyperframes (CSS + GSAP) renderer
+  engine-hf/    Hyperframes (CSS + GSAP) renderer + presets/  — the only engine
   cli/          bin entry + engine dispatcher
 ```
 
@@ -56,8 +50,8 @@ captions <a real video.mp4> --lang en   # smoke-test the actual pipeline end to 
 
 ## Presets
 
-The public repo ships only the free `clean-white` preset. `packages/engine-ass/src/presets/`
-is git-ignored except `clean-white.ts` and `index.ts`. `index.ts` is **generated** by
+The public repo ships only the free `text` preset. `packages/engine-hf/src/presets/`
+is git-ignored except `text.ts` and `index.ts`. `index.ts` is **generated** by
 `scripts/generate-presets-index.mjs` — never hand-edit it, and never commit it in a state that
 imports presets not tracked in git (CI's `bun run build` will fail if you do). To work with
 local packs:

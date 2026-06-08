@@ -6,7 +6,7 @@
  * order: free → basic → premium → (alphabetical within tier).
  *
  * Usage:
- *   node scripts/generate-presets-index.mjs [ass|hf]   (default: ass)
+ *   node scripts/generate-presets-index.mjs [hf]   (default: hf)
  *
  * Run after install-pack.sh swaps the pack contents.
  */
@@ -19,11 +19,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 // Per-engine config. `prefix` drives the generated TS type names
 // (AssPreset* / HfPreset*); both engines share the same index shape.
 const ENGINES = {
-  ass: { pkg: 'engine-ass', prefix: 'Ass' },
   hf: { pkg: 'engine-hf', prefix: 'Hf' },
 };
 
-const engine = process.argv[2] ?? 'ass';
+const engine = process.argv[2] ?? 'hf';
 const cfg = ENGINES[engine];
 if (!cfg) {
   console.error(`Unknown engine "${engine}". Use one of: ${Object.keys(ENGINES).join(', ')}`);

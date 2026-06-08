@@ -3,11 +3,10 @@
 # binary into /usr/local/bin. macOS (brew) + Linux (apt/dnf/pacman).
 #
 #   curl -fsSL https://raw.githubusercontent.com/jurczykpawel/captions-cli/main/install.sh | bash
-#   curl -fsSL https://raw.githubusercontent.com/jurczykpawel/captions-cli/main/install.sh | bash -s -- --with-hf
 #
-# By default this installs the ASS engine only (ffmpeg + whisper.cpp).
-# Pass --with-hf to also install hyperframes for the `--engine hf` renderer.
-# Idempotent: skips anything already installed.
+# Installs the deps the HF engine needs: ffmpeg + whisper.cpp + hyperframes
+# (which provisions its own headless Chromium). Idempotent: skips anything
+# already installed. (--with-hf is accepted but a no-op — HF is the only engine.)
 
 set -euo pipefail
 
@@ -57,7 +56,7 @@ ensure_mac_deps() {
   have ffmpeg      || { note "brew install ffmpeg";      brew install ffmpeg; }
   have whisper-cli || { note "brew install whisper-cpp"; brew install whisper-cpp; }
   have bun         || { note "brew install bun";         brew install bun; }
-  [[ "$WITH_HF" == "1" ]] && ensure_hyperframes
+  ensure_hyperframes
 }
 
 ensure_linux_deps() {
@@ -80,14 +79,7 @@ ensure_linux_deps() {
     curl -fsSL https://bun.sh/install | bash
     export PATH="$HOME/.bun/bin:$PATH"
   fi
-  [[ "$WITH_HF" == "1" ]] && ensure_hyperframes
-}
-
-verify_libass() {
-  if have ffmpeg && ! ffmpeg -hide_banner -filters 2>/dev/null | grep -q '\bsubtitles\b'; then
-    warn "Your ffmpeg has no libass (no 'subtitles' filter) — the ASS engine cannot render."
-    warn "  macOS: brew reinstall ffmpeg    |    or use the Docker image (ships libass)."
-  fi
+  ensure_hyperframes
 }
 
 build_binary() {
@@ -113,7 +105,6 @@ case "$OS" in
   *)      fail "Unsupported OS: $OS" ;;
 esac
 
-verify_libass
 build_binary
 
 note "Done. Try: captions --help"

@@ -42,12 +42,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: docker/setup-buildx-action@v4
-      - name: Build slim image (free pack)
+      - name: Build image (free pack)
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: Dockerfile.slim
+          file: Dockerfile.full
           push: false
-          tags: captions-cli:slim-ci
+          tags: captions-cli:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max

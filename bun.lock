@@ -34,20 +34,12 @@
       },
       "dependencies": {
         "@captions-cli/core": "workspace:*",
-        "@captions-cli/engine-ass": "workspace:*",
         "@captions-cli/engine-hf": "workspace:*",
       },
     },
     "packages/core": {
       "name": "@captions-cli/core",
       "version": "0.1.0",
-    },
-    "packages/engine-ass": {
-      "name": "@captions-cli/engine-ass",
-      "version": "0.1.0",
-      "dependencies": {
-        "@captions-cli/core": "workspace:*",
-      },
     },
     "packages/engine-hf": {
       "name": "@captions-cli/engine-hf",
@@ -88,8 +80,6 @@
     "@captions-cli/cli": ["@captions-cli/cli@workspace:packages/cli"],
 
     "@captions-cli/core": ["@captions-cli/core@workspace:packages/core"],
-
-    "@captions-cli/engine-ass": ["@captions-cli/engine-ass@workspace:packages/engine-ass"],
 
     "@captions-cli/engine-hf": ["@captions-cli/engine-hf@workspace:packages/engine-hf"],
 

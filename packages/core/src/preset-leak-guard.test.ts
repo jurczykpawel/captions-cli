@@ -23,7 +23,6 @@ function trackedTsFiles(dir: string): string[] {
 }
 
 const CASES = [
-  { engine: 'ass', dir: 'packages/engine-ass/src/presets', free: 'clean-white.ts' },
   { engine: 'hf', dir: 'packages/engine-hf/src/presets', free: 'text.ts' },
 ] as const;
 

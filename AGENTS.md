@@ -11,15 +11,16 @@ to a TechSkills Academy guide on captioning video locally.
 
 ## Stack & layout
 
-Bun workspaces monorepo. Each engine is its own package; the CLI picks one by `--engine`.
+Bun workspaces monorepo. The render engine is a package the CLI selects by `--engine`
+(currently one: `hf`). The engine registry makes adding another straightforward.
 
 ```
 packages/
   core/         types, ffprobe (probe.ts), audio extract + transcribe (transcribe.ts),
                 cue grouping. No engine-specific code.
-  engine-ass/   default engine. Builds an .ass subtitle file from a preset, then runs
-                ffmpeg's `subtitles` filter (needs libass). presets/ holds the catalog.
-  engine-hf/    Hyperframes engine: HTML+CSS+GSAP rendered via headless Chromium.
+  engine-hf/    Hyperframes engine (the only engine): HTML+CSS+GSAP rendered via
+                headless Chromium. presets/ holds the catalog. Works in the CLI and,
+                via the same {css, timelineJs} format, in the web app.
   cli/          bin/captions-cli.ts (arg parsing + pipeline) and src/engines.ts (registry).
 ```
 
@@ -36,24 +37,24 @@ bun run typecheck                       # all packages, zero errors
 
 **Verification rule:** running the type-checker or a build is NOT proof a change works. The
 surface is the CLI — run `captions` on a real clip and inspect the output mp4 (extract a frame
-with ffmpeg and look at the burned-in captions). The ASS engine needs an `ffmpeg` built with
-libass (`ffmpeg -filters | grep subtitles`); if yours lacks it, verify via the Docker image.
+with ffmpeg and look at the burned-in captions). The HF engine needs `ffmpeg` (mux) plus
+`hyperframes` on PATH (it provisions its own headless Chromium); if you can't run it locally,
+verify via the Docker image (`Dockerfile.full`).
 
 ## Preset packs — important
 
-- Three tiers: **free** (open source), **basic** (paid), **premium** (paid). Applies to BOTH
-  engines — the free preset is `clean-white` (ass) and `text` (hf).
-- Each engine's `src/presets/` dir is git-ignored EXCEPT its free preset and `index.ts`
-  (`clean-white.ts` for ass, `text.ts` for hf).
-- `index.ts` is **generated** by `scripts/generate-presets-index.mjs <ass|hf>` from whatever
+- Three tiers: **free** (open source), **basic** (paid), **premium** (paid). The free preset
+  is `text` (hf); basic + premium are gitignored paid packs.
+- `engine-hf/src/presets/` is git-ignored EXCEPT the free preset (`text.ts`) and `index.ts`.
+- `index.ts` is **generated** by `scripts/generate-presets-index.mjs [hf]` from whatever
   `.ts` files are present. Each preset exports a `definition` with a `tier:` field; the
   generator orders free → basic → premium.
 - **Never commit `index.ts` importing presets not tracked in git** — a fresh clone would fail
   to build (`Cannot find module './hormozi'`). Before committing, restore the public state:
   `./scripts/install-pack.sh free`. CI's `bun run build` step and the `preset-leak-guard` test
   guard against regressions here.
-- Paid `.ts` files live in `packs/<engine>/{basic,premium}/` (git-ignored). `install-pack.sh`
-  copies them into each engine's `presets/` and regenerates both indexes for private images.
+- Paid `.ts` files live in `packs/hf/{basic,premium}/` (git-ignored). `install-pack.sh`
+  copies them into `engine-hf/src/presets/` and regenerates the index for private images.
 
 ## Conventions
 

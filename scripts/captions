@@ -5,11 +5,11 @@
 #
 # Pass a normal path to your video from anywhere; this mounts its folder
 # into the container and writes <name>-captioned.mp4 right next to it.
-# Override the image with CAPTIONS_IMAGE (e.g. ...:full for --engine hf).
+# Override the image with CAPTIONS_IMAGE.
 # Docs: https://github.com/jurczykpawel/captions-cli
 set -euo pipefail
 
-IMAGE="${CAPTIONS_IMAGE:-ghcr.io/jurczykpawel/captions-cli:slim}"
+IMAGE="${CAPTIONS_IMAGE:-ghcr.io/jurczykpawel/captions-cli:latest}"
 
 if ! command -v docker >/dev/null 2>&1; then
   echo "captions: Docker isn't installed. Get Docker Desktop:" >&2

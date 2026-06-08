@@ -5,8 +5,7 @@
  *
  *   captions <video.mp4>
  *   captions video.mp4 --preset hormozi --lang pl --color #F59E0B
- *   captions video.mp4 --engine ass           # default (ffmpeg+libass, slim)
- *   captions video.mp4 --engine hf            # full CSS power (headless Chromium)
+ *   captions video.mp4 --engine hf            # HF (HTML+CSS+GSAP via headless Chromium)
  *   captions --list-presets
  *   captions --list-engines
  */
@@ -24,7 +23,7 @@ import { ENGINES, listEngines } from '../src/engines';
 import type { CliOptions } from '../src/options';
 
 // Print clean one-line errors instead of a stack trace — most failures
-// here are user-facing (missing ffmpeg/libass, bad path, no speech).
+// here are user-facing (missing ffmpeg/hyperframes, bad path, no speech).
 function die(err: unknown): never {
   console.error(`\nError: ${err instanceof Error ? err.message : String(err)}`);
   process.exit(1);
@@ -37,13 +36,13 @@ captions-cli — burn karaoke captions onto a video. Local. No SaaS.
 
 USAGE
   captions <video.mp4> [options]
-  captions --list-presets [--engine hf|ass]
+  captions --list-presets [--engine hf]
   captions --list-engines
   captions --help
 
 OPTIONS
-  --engine <name>          Render engine: ${listEngines().join(' | ')}. Default: ass (slim + fast). Use 'hf' for full CSS power.
-  --preset <slug>          Caption look (varies per engine). Default: clean-white
+  --engine <name>          Render engine: ${listEngines().join(' | ')}. Default: hf.
+  --preset <slug>          Caption look. Default: text
   --output <path>          Default: <input>-captioned.mp4
   --lang <code>            Whisper language (en, pl, de, …). Default: en
   --color <hex>            Active highlight. Default: #F59E0B
@@ -78,7 +77,7 @@ if (flag('list-engines')) {
   process.exit(0);
 }
 
-const engineId = arg('engine') ?? 'ass';
+const engineId = arg('engine') ?? 'hf';
 const engine = ENGINES[engineId];
 if (!engine) {
   console.error(
@@ -90,30 +89,8 @@ if (!engine) {
 if (flag('list-presets')) {
   const descriptions = engine.presetDescriptions();
   console.log(`Available presets for engine '${engine.id}':\n`);
-  // ASS engine groups presets by paid tier; HF (and any future engine) just
-  // prints a flat list. We import lazily to avoid hard-coupling the CLI
-  // module to engine-ass internals.
-  if (engine.id === 'ass') {
-    const { assPresetsByTier } = await import('@captions-cli/engine-ass');
-    const groups = assPresetsByTier();
-    const labels: Record<string, string> = {
-      free: 'FREE — included in base image',
-      basic: 'BASIC pack — 47 PLN',
-      premium: 'PREMIUM pack — 97 PLN',
-    };
-    for (const tier of ['free', 'basic', 'premium'] as const) {
-      const list = groups[tier];
-      if (list.length === 0) continue;
-      console.log(`  [${labels[tier]}]`);
-      for (const def of list) {
-        console.log(`    ${def.slug.padEnd(22)} ${def.description}`);
-      }
-      console.log('');
-    }
-  } else {
-    for (const slug of engine.listPresets()) {
-      console.log(`  ${slug.padEnd(20)} ${descriptions[slug] ?? ''}`);
-    }
+  for (const slug of engine.listPresets()) {
+    console.log(`  ${slug.padEnd(20)} ${descriptions[slug] ?? ''}`);
   }
   process.exit(0);
 }
@@ -147,7 +124,7 @@ const opts: CliOptions = {
     arg('output') ?? videoPath.replace(/(\.[^.]+)?$/, '-captioned.mp4'),
   ),
   engine: engineId,
-  preset: arg('preset') ?? (engineId === 'ass' ? 'clean-white' : 'outline-pop'),
+  preset: arg('preset') ?? 'text',
   language: arg('lang') ?? 'en',
   highlightColor: arg('color') ?? '#F59E0B',
   upcomingColor: arg('upcoming'),
