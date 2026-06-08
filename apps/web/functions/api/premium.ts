@@ -1,18 +1,19 @@
-// Serve the premium preset data ONLY to a valid license key. Premium JSON is
+// Serve premium preset data ONLY to a valid Sellf license token. Premium JSON is
 // never in the static build — this gated endpoint is the only browser source.
-import { entitlementKey, PREMIUM_PRESETS, json, type Ctx } from '../_lib/premium';
+// The token's `tier` claim decides how much is returned (basic vs premium).
+import { verifySellfToken, presetsForTier, PREMIUM_PRESETS, json, type Ctx } from '../_lib/premium';
 
 export const onRequestPost = async ({ request, env }: Ctx): Promise<Response> => {
-  let key = '';
+  let token = '';
   try {
-    key = String(((await request.json()) as { key?: string })?.key ?? '').trim();
+    token = String(((await request.json()) as { token?: string })?.token ?? '').trim();
   } catch {
-    /* fallthrough to key_required */
+    /* fallthrough to token_required */
   }
-  if (!key) return json({ error: 'key_required' }, 400);
+  if (!token) return json({ error: 'token_required' }, 400);
 
-  const entitlement = await env.PREMIUM.get(entitlementKey(key));
-  if (!entitlement) return json({ error: 'not_found' }, 403);
+  const result = await verifySellfToken(token, env.SELLF_JWKS_URL);
+  if (!result.valid) return json({ error: 'invalid_token', reason: result.reason }, 403);
 
-  return json({ presets: PREMIUM_PRESETS });
+  return json({ tier: result.tier, presets: presetsForTier(PREMIUM_PRESETS, result.tier) });
 };

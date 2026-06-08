@@ -2,18 +2,14 @@ name = "captions"
 pages_build_output_dir = "dist"
 compatibility_date = "2024-11-01"
 
-# Premium entitlements written by the Sellf webhook, read by /api/premium.
-# Set `id` after creating the namespace:
-#   wrangler kv namespace create PREMIUM
-[[kv_namespaces]]
-binding = "PREMIUM"
-id = "632456c9fce24986a69867a9d9bb1615"
+# Sellf JWKS endpoint — premium license tokens are verified offline against these
+# public keys (no KV, no secret). Confirm the seller= id in Sellf → Settings →
+# License signing key before deploy. Public, non-secret.
+[vars]
+SELLF_JWKS_URL = "https://sellf.techskills.academy/api/licenses/jwks?seller=83789f79-bdd7-4918-af1f-e56325fa5070"
 
-# Premium pack ZIP, streamed by /api/premium-zip to verified buyers.
+# Premium pack ZIP, streamed by /api/premium-zip to verified premium buyers.
 # Uploaded during deploy (scripts/deploy-web.sh), never embedded in the Worker.
 [[r2_buckets]]
 binding = "PREMIUM_BUCKET"
 bucket_name = "captions-premium"
-
-# SELLF_WEBHOOK_SECRET is a Pages secret (dashboard or `wrangler pages secret put`),
-# not committed here.

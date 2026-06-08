@@ -1,7 +1,7 @@
 /**
  * Client controller: wires the DOM to the local pipeline.
  * file -> probe -> transcribe (whisper) -> cues -> live preview + preset
- * picker -> MP4 export. Tier gating + Listmonk email unlock included.
+ * picker -> MP4 export. Tier gating via a pasted Sellf license token.
  */
 import { probeVideo, checkVideo, decodeAudioMono16k, type VideoMeta } from './media';
 import { buildCaptionStage, type CaptionStage } from './captions-renderer';
@@ -15,8 +15,6 @@ import { getExportEngine } from './export';
 interface TestHooks {
   /** Replace whisper with a stub (avoids model download in tests). */
   transcribe?: (audio: Float32Array, lang: string) => Promise<Word[]>;
-  /** Skip the client-side altcha wait (server still enforces in prod). */
-  skipAltcha?: boolean;
 }
 const hooks = (): TestHooks =>
   (window as unknown as { __captionsTestHooks?: TestHooks }).__captionsTestHooks ?? {};
@@ -37,10 +35,11 @@ function readJson<T>(id: string, fallback: T): T {
 const COLORS = { fontColor: '#ffffff', highlightColor: '#ffca28', upcomingColor: '#9aa3af' };
 const CAPTION_TOP_PERCENT = 74;
 const EXPORT_FPS = 30;
-const UNLOCK_KEY = 'captions:emailUnlocked';
-const PREMIUM_KEY = 'captions:premium';
+// One credential now: a Sellf-issued license token. Its `tier` claim decides
+// what unlocks (basic vs premium). Cached locally so a return visit stays unlocked.
+const TOKEN_KEY = 'captions:token';
+const TIER_KEY = 'captions:tier';
 const PREMIUM_PACK_KEY = 'captions:premiumPack';
-const PREMIUM_KEY_KEY = 'captions:premiumKey';
 const WATERMARK_TEXT = 'captions.techskills.academy';
 
 interface PremiumPreset {
@@ -49,12 +48,16 @@ interface PremiumPreset {
   timelineJs?: string;
 }
 
+/** Mirror of the server's tier gating (functions/_lib/tiers.ts). */
+function allowedTiers(tier: string | null): string[] {
+  if (tier === 'premium') return ['basic', 'premium'];
+  if (tier === 'basic') return ['basic'];
+  return [];
+}
+
 export function initApp() {
   const t = readJson<Dict>('ws-i18n', {});
-  const cfg = readJson<{ locale: string; subscribeEndpoint: string; buyUrl: string }>(
-    'ws-config',
-    { locale: 'en', subscribeEndpoint: '/api/subscribe', buyUrl: '' },
-  );
+  const cfg = readJson<{ locale: string; buyUrl: string }>('ws-config', { locale: 'en', buyUrl: '' });
 
   const fileInput = $<HTMLInputElement>('file-input');
   const dropzone = document.querySelector<HTMLElement>('[data-dropzone]');
@@ -84,11 +87,10 @@ export function initApp() {
   let stage: CaptionStage | null = null;
   let currentSlug = 'text';
   let currentTier = 'free';
-  let pendingExport = false;
   let raf = 0;
 
-  // Bundled styles (free + basic) plus premium styles loaded at runtime from a
-  // purchased pack. Premium is NEVER in the build — only in the bought ZIP.
+  // Bundled styles (free + basic) plus premium styles loaded at runtime from the
+  // gated /api/premium endpoint. Premium is NEVER in the static build.
   const premiumBuilders: Record<string, HfPresetBuilder> = {};
   // Public, css-only previews of premium styles (the look, not the animation
   // and not the renderable preset). Used so buyers can preview on their video.
@@ -108,8 +110,6 @@ export function initApp() {
       const res = await fetch('/premium-previews.json');
       if (!res.ok) return;
       registerPreviews((await res.json()) as { slug: string; css: string }[]);
-      // If the user already picked a premium style before previews arrived,
-      // render it now.
       if (currentTier === 'premium' && !premiumBuilders[currentSlug] && previewBuilders[currentSlug]) {
         previewPreset(currentSlug, currentTier);
       }
@@ -121,7 +121,6 @@ export function initApp() {
   const tr = (section: string, key: string) => t[section]?.[key] ?? '';
   const fontSize = () => (meta ? Math.round(meta.height * 0.055) : 64);
   const presetInput = (): PresetInput => ({ ...COLORS, fontSize: fontSize() });
-  const isUnlocked = () => localStorage.getItem(UNLOCK_KEY) === '1';
 
   // Sample caption used to preview a style before the user has transcribed.
   function exampleCues(): Cue[] {
@@ -168,8 +167,6 @@ export function initApp() {
     stagewrap!.style.aspectRatio = `${probe.width} / ${probe.height}`;
     uploadCard?.setAttribute('hidden', '');
     workspace!.removeAttribute('hidden');
-    // Show the style picker right away so the user can preview styles on their
-    // video (example text) before transcribing. Export needs real captions.
     presetStep?.removeAttribute('hidden');
     exportStep?.setAttribute('hidden', '');
     if (transcribeStatus) transcribeStatus.textContent = '';
@@ -207,9 +204,6 @@ export function initApp() {
     });
   }
 
-  // Preview a style on the user's video. Uses example text before transcription,
-  // real captions after. Free to preview any bundled style; the email/buy gate
-  // is enforced at export time.
   function previewPreset(slug: string, tier: string) {
     const usingExample = !cues;
     mountStage(slug, cues ?? exampleCues());
@@ -221,19 +215,18 @@ export function initApp() {
     }
   }
 
-  // Every style previews live on the video. Using a style cleanly is what's
-  // gated: free is always clean; basic needs an email; premium needs a purchase.
-  // Until unlocked, export burns a demo watermark.
-  const hasPremium = () => localStorage.getItem(PREMIUM_KEY) === '1';
+  // The granted tier comes from the verified token. Free is always clean; basic
+  // and premium are watermarked until a token grants them.
+  const grantedTier = () => localStorage.getItem(TIER_KEY) || '';
+  const allowedNow = () => new Set(allowedTiers(grantedTier()));
   function shouldWatermark(): boolean {
-    if (currentTier === 'basic') return !isUnlocked();
-    if (currentTier === 'premium') return !hasPremium();
-    return false;
+    if (currentTier === 'free') return false;
+    return !allowedNow().has(currentTier);
   }
 
   function selectPreset(slug: string, tier: string) {
-    // Premium not unlocked yet: still preview the LOOK (css-only) on the video so
-    // the user sees what they're buying, and nudge them to the buy/key panel.
+    // Locked premium without a real builder yet: preview the LOOK (css-only) and
+    // nudge to the unlock panel.
     if (tier === 'premium' && !premiumBuilders[slug]) {
       const status = $('premium-status');
       if (previewBuilders[slug]) {
@@ -342,7 +335,9 @@ export function initApp() {
     }
   }
 
-  // Offer to remove the watermark after a gated export.
+  // Offer to unlock (remove the watermark) after a gated export. Both basic and
+  // premium are obtained the same way now — a Sellf token — so the CTA just sends
+  // the user to the unlock panel.
   const unlockCta = $('unlock-cta');
   const unlockText = $('unlock-text');
   const unlockBtn = $<HTMLButtonElement>('unlock-btn');
@@ -353,36 +348,38 @@ export function initApp() {
     if (!unlockCta) return;
     const premium = currentTier === 'premium';
     if (unlockText) unlockText.textContent = premium ? tr('unlock', 'premiumText') : tr('unlock', 'basicText');
-    if (unlockBtn) unlockBtn.textContent = premium ? tr('unlock', 'buyBtn') : tr('unlock', 'mailBtn');
+    if (unlockBtn) unlockBtn.textContent = tr('premium', 'unlockBtn');
     unlockCta.removeAttribute('hidden');
   }
   unlockBtn?.addEventListener('click', () => {
-    if (currentTier === 'premium') {
-      if (cfg.buyUrl) window.open(cfg.buyUrl, '_blank', 'noopener');
-      return;
-    }
-    pendingExport = true;
-    openEmailDialog();
+    $('premium-panel')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   });
 
-  // ---- premium unlock (enter the license key emailed after purchase) ----
-  const premiumKeyInput = $<HTMLInputElement>('premium-key');
-  const unlockPremiumBtn = $<HTMLButtonElement>('unlock-premium-btn');
-  const buyPremiumBtn = $<HTMLAnchorElement>('buy-premium-btn');
+  // ---- token unlock (paste the Sellf license token; tier decides what unlocks) ----
+  const tokenInput = $<HTMLInputElement>('premium-token');
+  const unlockBtnEl = $<HTMLButtonElement>('unlock-premium-btn');
   const downloadCliLink = $<HTMLAnchorElement>('download-cli-link');
   const premiumStatus = $('premium-status');
 
-  function unlockPremiumUi(key: string) {
-    document.querySelectorAll<HTMLElement>('.preset-card[data-tier="premium"]').forEach((c) =>
-      c.classList.remove('is-locked'),
-    );
-    if (downloadCliLink) {
-      downloadCliLink.href = `/api/premium-zip?key=${encodeURIComponent(key)}`;
-      downloadCliLink.hidden = false;
+  function applyTierUnlock(tier: string | null, token: string) {
+    const allowed = new Set(allowedTiers(tier));
+    if (allowed.has('basic')) {
+      document
+        .querySelectorAll<HTMLElement>('.preset-card[data-tier="basic"]')
+        .forEach((c) => c.classList.remove('is-locked'));
+    }
+    if (allowed.has('premium')) {
+      document
+        .querySelectorAll<HTMLElement>('.preset-card[data-tier="premium"]')
+        .forEach((c) => c.classList.remove('is-locked'));
+      if (downloadCliLink) {
+        downloadCliLink.href = `/api/premium-zip?token=${encodeURIComponent(token)}`;
+        downloadCliLink.hidden = false;
+      }
     }
   }
 
-  async function unlockPremium(key: string, opts?: { silent?: boolean }): Promise<boolean> {
+  async function unlockToken(token: string, opts?: { silent?: boolean }): Promise<boolean> {
     const setS = (s: string) => {
       if (premiumStatus && !opts?.silent) premiumStatus.textContent = s;
     };
@@ -390,18 +387,18 @@ export function initApp() {
       const res = await fetch('/api/premium', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key }),
+        body: JSON.stringify({ token }),
       });
       if (!res.ok) {
         setS(tr('premium', 'notFound'));
         return false;
       }
-      const data = (await res.json()) as { presets: PremiumPreset[] };
+      const data = (await res.json()) as { tier: string | null; presets: PremiumPreset[] };
       registerPremium(data.presets);
       localStorage.setItem(PREMIUM_PACK_KEY, JSON.stringify(data.presets));
-      localStorage.setItem(PREMIUM_KEY_KEY, key);
-      localStorage.setItem(PREMIUM_KEY, '1');
-      unlockPremiumUi(key);
+      localStorage.setItem(TOKEN_KEY, token);
+      localStorage.setItem(TIER_KEY, data.tier ?? '');
+      applyTierUnlock(data.tier, token);
       hideUnlockCta();
       setS(tr('premium', 'loaded'));
       if (cues) previewPreset(currentSlug, currentTier);
@@ -412,74 +409,13 @@ export function initApp() {
     }
   }
 
-  unlockPremiumBtn?.addEventListener('click', () => {
-    const key = (premiumKeyInput?.value ?? '').trim();
-    if (!key) {
+  unlockBtnEl?.addEventListener('click', () => {
+    const token = (tokenInput?.value ?? '').trim();
+    if (!token) {
       if (premiumStatus) premiumStatus.textContent = tr('premium', 'badKey');
       return;
     }
-    void unlockPremium(key);
-  });
-  if (cfg.buyUrl && buyPremiumBtn) buyPremiumBtn.href = cfg.buyUrl;
-
-  // ---- email dialog ----
-  const dialog = $<HTMLDialogElement>('email-dialog');
-  const emailForm = $<HTMLFormElement>('email-form');
-  const emailInput = $<HTMLInputElement>('email-input');
-  const tosCheckbox = $<HTMLInputElement>('tos-checkbox');
-  const emailStatus = $('email-status');
-  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-  function openEmailDialog() {
-    dialog?.showModal();
-  }
-
-  function applyUnlock() {
-    localStorage.setItem(UNLOCK_KEY, '1');
-    document.querySelectorAll<HTMLElement>('.preset-card[data-tier="basic"]').forEach((c) => {
-      c.classList.remove('is-locked');
-    });
-    dialog?.close();
-    if (pendingExport) {
-      pendingExport = false;
-      void exportVideo();
-    }
-  }
-
-  $('email-cancel')?.addEventListener('click', () => dialog?.close());
-
-  emailForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = (emailInput?.value ?? '').trim();
-    const setS = (s: string) => {
-      if (emailStatus) emailStatus.textContent = s;
-    };
-    if (!EMAIL_RE.test(email)) return setS(tr('email', 'invalid'));
-    if (tosCheckbox && !tosCheckbox.checked) return setS(tr('email', 'invalid'));
-    const altchaInput = emailForm.querySelector<HTMLInputElement>('input[name="altcha"]');
-    const widget = emailForm.querySelector('altcha-widget');
-    if (widget && !hooks().skipAltcha && !altchaInput?.value) return setS(tr('email', 'waiting'));
-    setS(tr('email', 'submitting'));
-    try {
-      const res = await fetch(cfg.subscribeEndpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          consent: true,
-          altcha: altchaInput?.value ?? '',
-          locale: cfg.locale,
-        }),
-      });
-      if (res.ok) {
-        setS(tr('email', 'success'));
-        applyUnlock();
-      } else {
-        setS(tr('email', 'error'));
-      }
-    } catch {
-      setS(tr('email', 'error'));
-    }
+    void unlockToken(token);
   });
 
   // ---- preview playback ----
@@ -550,23 +486,21 @@ export function initApp() {
 
   void loadPreviews();
 
-  // restore unlock state on load
-  if (isUnlocked()) {
-    document.querySelectorAll<HTMLElement>('.preset-card[data-tier="basic"]').forEach((c) =>
-      c.classList.remove('is-locked'),
-    );
-  }
+  // Restore unlock state on load from the cached token + pack.
+  const savedToken = localStorage.getItem(TOKEN_KEY);
   const savedPack = localStorage.getItem(PREMIUM_PACK_KEY);
-  const savedKey = localStorage.getItem(PREMIUM_KEY_KEY);
-  if (savedPack && savedKey) {
-    try {
-      registerPremium(JSON.parse(savedPack) as PremiumPreset[]);
-      unlockPremiumUi(savedKey);
-    } catch {
-      /* ignore a corrupt saved pack */
+  const savedTier = localStorage.getItem(TIER_KEY);
+  if (savedToken) {
+    if (savedPack) {
+      try {
+        registerPremium(JSON.parse(savedPack) as PremiumPreset[]);
+      } catch {
+        /* ignore a corrupt saved pack */
+      }
     }
-    // Re-validate online so a revoked key loses access (offline keeps cache).
-    void unlockPremium(savedKey, { silent: true });
+    applyTierUnlock(savedTier, savedToken);
+    // Re-validate online so a revoked/expired token loses access.
+    void unlockToken(savedToken, { silent: true });
   }
 
   window.addEventListener('resize', syncScale);

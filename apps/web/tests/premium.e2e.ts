@@ -11,7 +11,7 @@ const ASSETS = resolve(ROOT, 'apps/web/functions/_premium-assets.json');
 test.describe('premium unlock', () => {
   test.skip(!existsSync(PACKS), 'private premium packs not present (free clone)');
 
-  test('enter license key -> premium unlocks + CLI download appears + clean export', async ({ page }) => {
+  test('paste premium token -> premium unlocks + CLI download appears + clean export', async ({ page }) => {
     test.setTimeout(90_000);
     // Build the real premium data; mock the gated Worker (astro preview can't run Functions).
     execSync('bun scripts/build-premium-pack.mjs', { cwd: ROOT, stdio: 'ignore' });
@@ -19,15 +19,19 @@ test.describe('premium unlock', () => {
 
     await page.addInitScript(() => {
       (window as unknown as { __captionsTestHooks: unknown }).__captionsTestHooks = {
-        skipAltcha: true,
         transcribe: async () => [
           { text: 'hello', startTime: 0, endTime: 0.5 },
           { text: 'world', startTime: 0.5, endTime: 1.2 },
         ],
       };
     });
+    // A verified premium token returns { tier: 'premium', presets }.
     await page.route('**/api/premium', (route) =>
-      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ presets: assets.presets }) }),
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ tier: 'premium', presets: assets.presets }),
+      }),
     );
 
     await page.goto('/');
@@ -38,11 +42,15 @@ test.describe('premium unlock', () => {
     const premiumCard = page.locator('.preset-card[data-tier="premium"]').first();
     await expect(premiumCard).toHaveClass(/is-locked/);
 
-    // Unlock with the license key (emailed after purchase).
-    await page.fill('#premium-key', 'cap_test0123456789abcdef');
+    // Unlock with the Sellf license token (from the buyer's email / Sellf account).
+    await page.fill('#premium-token', 'header.signature');
     await page.click('#unlock-premium-btn');
     await expect(premiumCard).not.toHaveClass(/is-locked/, { timeout: 15_000 });
-    await expect(page.locator('#download-cli-link')).toBeVisible();
+
+    // CLI download now points at the token-gated endpoint.
+    const cli = page.locator('#download-cli-link');
+    await expect(cli).toBeVisible();
+    await expect(cli).toHaveAttribute('href', /\/api\/premium-zip\?token=/);
 
     // Premium previews live and exports without a watermark.
     await premiumCard.click();

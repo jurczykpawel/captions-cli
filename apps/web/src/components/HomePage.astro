@@ -20,9 +20,6 @@ const premiumTeasers = [
 
 const config = {
   locale,
-  // Same-origin proxy (Pages Function) -> Listmonk. Listmonk is cross-origin and
-  // CORS-closed, so the browser can't subscribe directly.
-  subscribeEndpoint: '/api/subscribe',
   buyUrl: 'https://sellf.techskills.academy/checkout/captions-premium-styles',
 };
 
@@ -113,11 +110,16 @@ const label = (slug: string) =>
               <strong>{t.premium.panelHeading}</strong>
               <p class="faint">{t.premium.panelBody}</p>
             </div>
-            <a class="btn btn--primary premium-panel__buy" id="buy-premium-btn" href={config.buyUrl} target="_blank" rel="noopener">{t.premium.buyBtn}</a>
+            <div class="premium-panel__buys">
+              <div data-sellf-embed data-product-slug="captions-basic-styles"
+                   data-modal="true" data-button-label={t.presets.basic}></div>
+              <div data-sellf-embed data-product-slug="captions-premium-styles"
+                   data-modal="true" data-button-label={t.premium.buyBtn} data-show-price="true"></div>
+            </div>
             <div class="premium-panel__key">
               <span class="faint premium-panel__keylabel">{t.premium.haveKey}</span>
               <div class="premium-panel__keyrow">
-                <input type="text" id="premium-key" placeholder={t.premium.keyPlaceholder} autocomplete="off" />
+                <input type="text" id="premium-token" placeholder={t.premium.keyPlaceholder} autocomplete="off" />
                 <button class="btn btn--ghost" id="unlock-premium-btn" type="button">{t.premium.unlockBtn}</button>
               </div>
             </div>
@@ -173,27 +175,10 @@ const label = (slug: string) =>
   </div>
 </section>
 
-<dialog class="email-dialog" id="email-dialog">
-  <form method="dialog" id="email-form">
-    <h3>{t.email.heading}</h3>
-    <p class="muted">{t.email.desc}</p>
-    <input type="email" id="email-input" name="email" required placeholder={t.email.placeholder} autocomplete="email" />
-    <altcha-widget challengeurl="/api/altcha" auto="onload" hidelogo hidefooter></altcha-widget>
-    <label class="tos">
-      <input type="checkbox" id="tos-checkbox" required />
-      <span>{t.email.consentPrefix} <a href={locale === 'en' ? '/terms' : '/pl/terms'} target="_blank">{t.email.tos}</a> {t.email.and} <a href={locale === 'en' ? '/privacy' : '/pl/privacy'} target="_blank">{t.email.privacy}</a>.</span>
-    </label>
-    <div class="email-dialog__actions">
-      <button class="btn btn--ghost" id="email-cancel" type="button">×</button>
-      <button class="btn btn--primary" id="email-submit" type="submit">{t.email.submit}</button>
-    </div>
-    <p class="faint" id="email-status" aria-live="polite"></p>
-  </form>
-</dialog>
-
 <script id="ws-i18n" type="application/json" set:html={JSON.stringify(t)}></script>
 <script id="ws-config" type="application/json" set:html={JSON.stringify(config)}></script>
-<script src="/altcha.umd.js" defer></script>
+<!-- Sellf embedded checkout: basic (free) + premium (paid) products, each issues a license token. -->
+<script src="https://sellf.techskills.academy/embed/v1/checkout.js" defer></script>
 <script>
   import { initApp } from '../lib/app';
   initApp();
@@ -275,7 +260,7 @@ const label = (slug: string) =>
   }
   .premium-panel__head strong { display: block; margin-bottom: 0.2rem; font-size: 0.98rem; }
   .premium-panel__head .faint { font-size: 0.84rem; line-height: 1.45; }
-  .premium-panel__buy { width: 100%; }
+  .premium-panel__buys { display: flex; flex-direction: column; gap: 0.5rem; }
   .premium-panel__key {
     display: flex; flex-direction: column; gap: 0.4rem;
     padding-top: 0.85rem; border-top: 1px solid var(--border);
@@ -325,20 +310,4 @@ const label = (slug: string) =>
   .cli__card h2 { font-size: 1.3rem; margin-bottom: 0.4rem; }
   .cli__card p { max-width: 60ch; }
   .cli__card .btn { white-space: nowrap; }
-
-  .email-dialog {
-    border: 1px solid var(--border-strong); border-radius: var(--radius);
-    background: var(--bg-elevated); color: var(--text);
-    max-width: 440px; width: calc(100% - 2rem); padding: 1.5rem;
-    /* The global `* { margin: 0 }` reset breaks the UA dialog centering
-       (which relies on margin:auto). Restore it. */
-    position: fixed; inset: 0; margin: auto; height: fit-content;
-    max-height: calc(100% - 2rem);
-  }
-  .email-dialog::backdrop { background: rgba(0,0,0,0.6); }
-  .email-dialog form { display: flex; flex-direction: column; gap: 0.85rem; }
-  .email-dialog input[type="email"] { width: 100%; }
-  .email-dialog .tos { display: flex; gap: 0.5rem; font-size: 0.82rem; color: var(--text-muted); align-items: flex-start; }
-  .email-dialog__actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
-  altcha-widget { --altcha-border-radius: 10px; font-size: 12px; }
 </style>

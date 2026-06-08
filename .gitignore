@@ -12,3 +12,6 @@ dist
 # packages/engine-ass/src/presets/clean-white.ts.
 packs/
 dist-pack/
+
+# Superpowers brainstorm/spec/plan working dir — never committed.
+docs/superpowers/

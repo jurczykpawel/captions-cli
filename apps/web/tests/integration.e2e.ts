@@ -1,20 +1,26 @@
 import { test, expect } from '@playwright/test';
 
-// Full flow with whisper stubbed (no model download) and Listmonk mocked.
-test('upload -> transcribe -> preview -> email unlock -> export', async ({ page }) => {
+// Full flow with whisper stubbed (no model download). The basic tier is unlocked
+// by pasting a Sellf license token; the gated Worker is mocked.
+test('upload -> transcribe -> preview -> token unlock (basic) -> clean export', async ({ page }) => {
   test.setTimeout(90_000);
 
   await page.addInitScript(() => {
     (window as unknown as { __captionsTestHooks: unknown }).__captionsTestHooks = {
-      skipAltcha: true,
       transcribe: async () => [
         { text: 'hello', startTime: 0, endTime: 0.5 },
         { text: 'world', startTime: 0.5, endTime: 1.2 },
       ],
     };
   });
-  await page.route(/\/api\/subscribe/, (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) }),
+  // Mock the gated Worker: a basic-tier token. Basic styles are bundled, so no
+  // premium presets need to be returned.
+  await page.route('**/api/premium', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ tier: 'basic', presets: [] }),
+    }),
   );
 
   await page.goto('/');
@@ -41,32 +47,22 @@ test('upload -> transcribe -> preview -> email unlock -> export', async ({ page 
   await expect(basicCard).toHaveClass(/is-locked/);
   await basicCard.click();
   await expect(basicCard).toHaveClass(/is-active/);
-  await expect(page.locator('#email-dialog')).toHaveJSProperty('open', false);
 
-  // Export always works -> a WATERMARKED video + the "remove watermark" CTA.
+  // Export always works -> a WATERMARKED video + the "unlock" CTA.
   await page.click('#export-btn');
   const download = page.locator('#download-link');
   await expect(download).toBeVisible({ timeout: 60_000 });
   await expect(download).toHaveAttribute('href', /^blob:/);
   await expect(page.locator('#unlock-cta')).toBeVisible();
 
-  // The unlock CTA opens the email dialog.
+  // The unlock CTA scrolls to the panel; paste a (mocked) Sellf token to unlock.
   await page.click('#unlock-btn');
-  await expect(page.locator('#email-dialog')).toHaveJSProperty('open', true);
-  // Dialog is centered, not pinned to the top-left corner.
-  const box = await page.locator('#email-dialog').boundingBox();
-  expect(box!.x).toBeGreaterThan(100);
-  expect(box!.y).toBeGreaterThan(50);
-
-  // Neutralize altcha (offline), submit -> unlock -> clean re-export.
-  await page.evaluate(() => document.querySelector('altcha-widget')?.remove());
-  await page.fill('#email-input', 'tester@example.com');
-  await page.check('#tos-checkbox');
-  await page.click('#email-submit');
-  await expect(page.locator('#email-dialog')).toHaveJSProperty('open', false);
+  await page.fill('#premium-token', 'header.signature');
+  await page.click('#unlock-premium-btn');
   await expect(basicCard).not.toHaveClass(/is-locked/);
-
-  // After unlock the export reruns clean -> download present, no watermark CTA.
-  await expect(download).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('#unlock-cta')).toBeHidden();
+
+  // After unlock the export reruns clean -> download present.
+  await page.click('#export-btn');
+  await expect(download).toBeVisible({ timeout: 60_000 });
 });

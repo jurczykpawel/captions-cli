@@ -1,14 +1,17 @@
-// Serve the premium pack ZIP (for the CLI) ONLY to a valid license key. The ZIP
-// lives in R2 and is streamed straight through — zero per-request CPU and the
+// Serve the premium pack ZIP (for the CLI) ONLY to a verified premium token. The
+// ZIP lives in R2 and is streamed straight through — zero per-request CPU and the
 // Worker bundle stays small (the pack can grow without redeploying the Worker).
-import { entitlementKey, PREMIUM_ZIP_KEY, type Ctx } from '../_lib/premium';
+import { verifySellfToken, allowedTiers, PREMIUM_ZIP_KEY, type Ctx } from '../_lib/premium';
 
 export const onRequestGet = async ({ request, env }: Ctx): Promise<Response> => {
-  const key = (new URL(request.url).searchParams.get('key') ?? '').trim();
-  if (!key) return new Response('key required', { status: 400 });
+  const token = (new URL(request.url).searchParams.get('token') ?? '').trim();
+  if (!token) return new Response('token required', { status: 400 });
 
-  const entitlement = await env.PREMIUM.get(entitlementKey(key));
-  if (!entitlement) return new Response('not found', { status: 403 });
+  const result = await verifySellfToken(token, env.SELLF_JWKS_URL);
+  // The CLI pack ZIP is the full premium pack — premium tier only.
+  if (!result.valid || !allowedTiers(result.tier).includes('premium')) {
+    return new Response('not authorized', { status: 403 });
+  }
 
   const object = await env.PREMIUM_BUCKET.get(PREMIUM_ZIP_KEY);
   if (!object) return new Response('pack unavailable', { status: 404 });
