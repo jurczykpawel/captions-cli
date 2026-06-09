@@ -240,6 +240,11 @@ const label = (slug: string) =>
   .preset-card:hover { border-color: var(--accent); }
   .preset-card.is-active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
   .preset-card.is-locked { opacity: 0.78; }
+  @keyframes preset-unlock-pulse {
+    0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 55%, transparent); }
+    100% { box-shadow: 0 0 0 12px color-mix(in srgb, var(--ok) 0%, transparent); }
+  }
+  .preset-card.just-unlocked { animation: preset-unlock-pulse 0.85s ease-out 2; border-color: var(--ok); }
   .preset-card.is-locked::after {
     content: '🔒'; position: absolute; top: 0.5rem; right: 0.55rem;
     font-size: 0.72rem; line-height: 1; opacity: 0.65;

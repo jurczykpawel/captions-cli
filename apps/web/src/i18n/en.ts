@@ -106,7 +106,8 @@ export const en: Dict = {
     downloadCli: 'Download pack for CLI (.zip)',
     badKey: 'Paste your license token.',
     notFound: 'That token is not valid. Get one below.',
-    loaded: 'Premium unlocked. Export without a watermark.',
+    loaded: 'All styles unlocked — export without a watermark, full animation.',
+    loadedBasic: 'Basic styles unlocked — export without a watermark. Premium styles are available above.',
     error: 'Something went wrong. Please try again.',
   },
   cli: {

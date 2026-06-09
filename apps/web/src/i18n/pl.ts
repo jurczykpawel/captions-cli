@@ -106,7 +106,8 @@ export const pl: Dict = {
     downloadCli: 'Pobierz paczkę do CLI (.zip)',
     badKey: 'Wklej swój token licencyjny.',
     notFound: 'Ten token jest nieprawidłowy. Odbierz go poniżej.',
-    loaded: 'Premium odblokowane. Eksportuj bez znaku wodnego.',
+    loaded: 'Wszystkie style odblokowane — eksport bez znaku wodnego i pełna animacja.',
+    loadedBasic: 'Style basic odblokowane — eksport bez znaku wodnego. Style premium kupisz powyżej.',
     error: 'Coś poszło nie tak. Spróbuj ponownie.',
   },
   cli: {

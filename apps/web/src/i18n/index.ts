@@ -76,6 +76,7 @@ export interface Dict {
     badKey: string;
     notFound: string;
     loaded: string;
+    loadedBasic: string;
     error: string;
   };
   cli: { heading: string; body: string; cta: string };

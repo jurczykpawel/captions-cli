@@ -361,22 +361,44 @@ export function initApp() {
   const downloadCliLink = $<HTMLAnchorElement>('download-cli-link');
   const premiumStatus = $('premium-status');
 
-  function applyTierUnlock(tier: string | null, token: string) {
+  function unlockCards(selector: string, animate: boolean) {
+    document.querySelectorAll<HTMLElement>(selector).forEach((c) => {
+      if (!c.classList.contains('is-locked')) return;
+      c.classList.remove('is-locked');
+      if (animate) {
+        c.classList.add('just-unlocked');
+        c.addEventListener('animationend', () => c.classList.remove('just-unlocked'), { once: true });
+      }
+    });
+  }
+
+  function applyTierUnlock(tier: string | null, token: string, opts?: { animate?: boolean }) {
+    const animate = opts?.animate ?? false;
     const allowed = new Set(allowedTiers(tier));
     if (allowed.has('basic')) {
-      document
-        .querySelectorAll<HTMLElement>('.preset-card[data-tier="basic"]')
-        .forEach((c) => c.classList.remove('is-locked'));
+      unlockCards('.preset-card[data-tier="basic"]', animate);
     }
     if (allowed.has('premium')) {
-      document
-        .querySelectorAll<HTMLElement>('.preset-card[data-tier="premium"]')
-        .forEach((c) => c.classList.remove('is-locked'));
+      unlockCards('.preset-card[data-tier="premium"]', animate);
       if (downloadCliLink) {
         downloadCliLink.href = `/api/premium-zip?token=${encodeURIComponent(token)}`;
         downloadCliLink.hidden = false;
       }
     }
+  }
+
+  // Drop all unlocked state and re-lock the UI. Called when the worker
+  // definitively rejects a previously-stored token (revoked / expired).
+  function revokeUnlock() {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(TIER_KEY);
+    localStorage.removeItem(PREMIUM_PACK_KEY);
+    for (const k of Object.keys(premiumBuilders)) delete premiumBuilders[k];
+    document
+      .querySelectorAll<HTMLElement>('.preset-card[data-tier="basic"], .preset-card[data-tier="premium"]')
+      .forEach((c) => c.classList.add('is-locked'));
+    if (downloadCliLink) downloadCliLink.hidden = true;
+    if (cues) previewPreset(currentSlug, currentTier); // watermark returns
   }
 
   async function unlockToken(token: string, opts?: { silent?: boolean }): Promise<boolean> {
@@ -390,6 +412,11 @@ export function initApp() {
         body: JSON.stringify({ token }),
       });
       if (!res.ok) {
+        // A stored token the worker now rejects (revoked/expired) must lose
+        // access on this refresh. A freshly pasted bad token only reports —
+        // never nuke an existing unlock over a typo. Transient 5xx/offline
+        // (caught below) also keep the optimistic state.
+        if (opts?.silent && res.status === 403) revokeUnlock();
         setS(tr('premium', 'notFound'));
         return false;
       }
@@ -398,9 +425,9 @@ export function initApp() {
       localStorage.setItem(PREMIUM_PACK_KEY, JSON.stringify(data.presets));
       localStorage.setItem(TOKEN_KEY, token);
       localStorage.setItem(TIER_KEY, data.tier ?? '');
-      applyTierUnlock(data.tier, token);
+      applyTierUnlock(data.tier, token, { animate: !opts?.silent });
       hideUnlockCta();
-      setS(tr('premium', 'loaded'));
+      setS(tr('premium', data.tier === 'premium' ? 'loaded' : 'loadedBasic'));
       if (cues) previewPreset(currentSlug, currentTier);
       return true;
     } catch {
