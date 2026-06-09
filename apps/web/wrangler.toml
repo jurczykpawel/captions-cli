@@ -5,8 +5,20 @@ compatibility_date = "2024-11-01"
 # Sellf JWKS endpoint — premium license tokens are verified offline against these
 # public keys (no KV, no secret). Confirm the seller= id in Sellf → Settings →
 # License signing key before deploy. Public, non-secret.
+#
+# Resilience: keys are fetched live and matched by `kid`, so a normal Sellf key
+# rotation is followed automatically (≤5 min, no redeploy). On a JWKS outage the
+# Worker serves the last-known-good keys (7-day stale window). SELLF_JWKS_FALLBACK
+# below is the durable last resort for a cold isolate during an outage.
 [vars]
 SELLF_JWKS_URL = "https://sellf.techskills.academy/api/licenses/jwks?seller=83789f79-bdd7-4918-af1f-e56325fa5070"
+
+# Optional pinned JWKS snapshot — the exact `{"keys":[{"kid","alg","pem"}]}` body
+# the endpoint above currently returns. Used ONLY when the live fetch fails and
+# nothing is cached. Public-key material (non-secret); also archived in Vaultwarden
+# ("Captions — Sellf License JWKS (public)"). Update it here AND in the vault if the
+# Sellf signing key is ever rotated. Set as a single-line JSON Pages var:
+#   SELLF_JWKS_FALLBACK = '{"keys":[{"kid":"…","alg":"ES256","pem":"-----BEGIN PUBLIC KEY----- …"}]}'
 
 # Premium pack ZIP, streamed by /api/premium-zip to verified premium buyers.
 # Uploaded during deploy (scripts/deploy-web.sh), never embedded in the Worker.

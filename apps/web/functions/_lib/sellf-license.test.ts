@@ -4,6 +4,7 @@ import {
   parseClaims,
   verifyTokenSignature,
   verifySellfToken,
+  parseJwksJson,
   __resetJwksCache,
   type Claims,
 } from './sellf-license';
@@ -124,5 +125,82 @@ describe('verifySellfToken', () => {
     await verifySellfToken(token, JWKS, { fetchImpl: fetchMock });
     await verifySellfToken(token, JWKS, { fetchImpl: fetchMock });
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('JWKS resilience (key rotation / outage)', () => {
+  beforeEach(() => __resetJwksCache());
+
+  const okThenFail = (publicKey: string) => {
+    let calls = 0;
+    return mock(() => {
+      calls++;
+      return calls === 1
+        ? Promise.resolve(jwksResponse('k1', publicKey))
+        : Promise.reject(new Error('JWKS endpoint down'));
+    });
+  };
+
+  test('serves stale keys when a later JWKS refresh fails (outage)', async () => {
+    const { publicKey, privateKey } = freshKeypair();
+    const token = signLikeSellf({ ...baseClaims, kid: 'k1', exp: null }, privateKey);
+    const fetchImpl = okThenFail(publicKey);
+
+    // t0: warm the cache.
+    const first = await verifySellfToken(token, JWKS, { fetchImpl, cacheNowMs: 1000 });
+    expect(first.valid).toBe(true);
+
+    // t0 + 6min: past the 5min fresh TTL → refetch attempt fails → serve stale.
+    const second = await verifySellfToken(token, JWKS, { fetchImpl, cacheNowMs: 1000 + 360_000 });
+    expect(second.valid).toBe(true);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  test('falls back to a pinned JWKS snapshot when the endpoint is down (cold isolate)', async () => {
+    const { publicKey, privateKey } = freshKeypair();
+    const token = signLikeSellf({ ...baseClaims, kid: 'k1', exp: null }, privateKey);
+    const fetchImpl = mock(() => Promise.reject(new Error('JWKS endpoint down')));
+
+    const res = await verifySellfToken(token, JWKS, {
+      fetchImpl,
+      fallbackKeys: [{ kid: 'k1', alg: 'ES256', pem: publicKey }],
+    });
+    expect(res).toEqual({ valid: true, tier: 'premium', claims: { ...baseClaims, kid: 'k1', exp: null } });
+  });
+
+  test('fails closed when the endpoint is down and there is no cache or fallback', async () => {
+    const { privateKey } = freshKeypair();
+    const token = signLikeSellf({ ...baseClaims, kid: 'k1', exp: null }, privateKey);
+    const fetchImpl = mock(() => Promise.reject(new Error('JWKS endpoint down')));
+    const res = await verifySellfToken(token, JWKS, { fetchImpl });
+    expect(res).toEqual({ valid: false, reason: 'jwks_error' });
+  });
+
+  test('an empty JWKS response does not overwrite good cached keys', async () => {
+    const { publicKey, privateKey } = freshKeypair();
+    const token = signLikeSellf({ ...baseClaims, kid: 'k1', exp: null }, privateKey);
+    let calls = 0;
+    const fetchImpl = mock(() => {
+      calls++;
+      return calls === 1
+        ? Promise.resolve(jwksResponse('k1', publicKey))
+        : Promise.resolve(new Response(JSON.stringify({ keys: [] }), { status: 200 }));
+    });
+    await verifySellfToken(token, JWKS, { fetchImpl, cacheNowMs: 1000 });
+    const res = await verifySellfToken(token, JWKS, { fetchImpl, cacheNowMs: 1000 + 360_000 });
+    expect(res.valid).toBe(true); // stale good keys win over an empty refresh
+  });
+});
+
+describe('parseJwksJson', () => {
+  test('parses the {keys:[…]} snapshot used for the env fallback', () => {
+    const raw = JSON.stringify({ keys: [{ kid: 'k1', alg: 'ES256', pem: 'PEM' }] });
+    expect(parseJwksJson(raw)).toEqual([{ kid: 'k1', alg: 'ES256', pem: 'PEM' }]);
+  });
+  test('returns [] for missing / malformed / keyless input', () => {
+    expect(parseJwksJson(undefined)).toEqual([]);
+    expect(parseJwksJson('')).toEqual([]);
+    expect(parseJwksJson('not json')).toEqual([]);
+    expect(parseJwksJson('{"nope":1}')).toEqual([]);
   });
 });

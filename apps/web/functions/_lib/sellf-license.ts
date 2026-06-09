@@ -92,7 +92,7 @@ export async function verifyTokenSignature(token: string, publicKeyPem: string):
   }
 }
 
-interface JwksKey {
+export interface JwksKey {
   kid: string;
   alg: string;
   pem: string;
@@ -101,25 +101,61 @@ type FetchImpl = (url: string) => Promise<Response>;
 
 interface CacheEntry {
   keys: JwksKey[];
-  expiresAt: number;
+  freshUntil: number; // serve without refetching
+  staleUntil: number; // serve on a failed refresh (outage), don't fail closed
 }
 const jwksCache = new Map<string, CacheEntry>();
-const JWKS_TTL_MS = 300_000;
+const JWKS_FRESH_MS = 300_000; // 5 min
+const JWKS_STALE_MS = 7 * 24 * 60 * 60_000; // 7 days serve-stale-on-error
 
 /** Test seam: clears the in-memory JWKS cache. */
 export function __resetJwksCache(): void {
   jwksCache.clear();
 }
 
-async function loadJwks(url: string, fetchImpl: FetchImpl): Promise<JwksKey[]> {
+/**
+ * Parse a pinned JWKS snapshot (`{ keys: [{ kid, alg, pem }] }`) from an env
+ * var. This is the durable fallback used only when the live JWKS endpoint is
+ * unreachable AND nothing is cached (e.g. a cold isolate during an outage).
+ * It's public-key material — safe to keep in config / archive in the vault.
+ */
+export function parseJwksJson(raw: string | null | undefined): JwksKey[] {
+  if (!raw) return [];
+  try {
+    const body = JSON.parse(raw) as { keys?: JwksKey[] };
+    if (!Array.isArray(body.keys)) return [];
+    return body.keys.filter((k): k is JwksKey => !!k && !!k.kid && !!k.pem);
+  } catch {
+    return [];
+  }
+}
+
+async function loadJwks(
+  url: string,
+  fetchImpl: FetchImpl,
+  fallbackKeys: JwksKey[],
+  nowMs: number,
+): Promise<JwksKey[]> {
   const hit = jwksCache.get(url);
-  if (hit && hit.expiresAt > Date.now()) return hit.keys;
-  const res = await fetchImpl(url);
-  if (!res.ok) throw new Error(`jwks ${res.status}`);
-  const body = (await res.json()) as { keys?: JwksKey[] };
-  const keys = body.keys ?? [];
-  jwksCache.set(url, { keys, expiresAt: Date.now() + JWKS_TTL_MS });
-  return keys;
+  if (hit && hit.freshUntil > nowMs) return hit.keys;
+
+  try {
+    const res = await fetchImpl(url);
+    if (!res.ok) throw new Error(`jwks ${res.status}`);
+    const body = (await res.json()) as { keys?: JwksKey[] };
+    const keys = body.keys ?? [];
+    // Treat an empty key set as a soft failure so it can't overwrite good keys.
+    if (keys.length === 0) throw new Error('jwks empty');
+    jwksCache.set(url, { keys, freshUntil: nowMs + JWKS_FRESH_MS, staleUntil: nowMs + JWKS_STALE_MS });
+    return keys;
+  } catch (err) {
+    // A transient JWKS outage (or an empty response) must not revoke every
+    // valid token. Prefer the last-known-good keys, then a durable pinned
+    // snapshot, before failing closed.
+    if (hit && hit.staleUntil > nowMs) return hit.keys;
+    if (fallbackKeys.length > 0) return fallbackKeys;
+    throw err;
+  }
 }
 
 export type VerifyResult =
@@ -129,7 +165,7 @@ export type VerifyResult =
 export async function verifySellfToken(
   token: string,
   jwksUrl: string,
-  opts: { fetchImpl?: FetchImpl; now?: number } = {},
+  opts: { fetchImpl?: FetchImpl; now?: number; fallbackKeys?: JwksKey[]; cacheNowMs?: number } = {},
 ): Promise<VerifyResult> {
   const fetchImpl = opts.fetchImpl ?? ((u: string) => fetch(u));
   const claims = parseClaims(token);
@@ -137,7 +173,7 @@ export async function verifySellfToken(
 
   let keys: JwksKey[];
   try {
-    keys = await loadJwks(jwksUrl, fetchImpl);
+    keys = await loadJwks(jwksUrl, fetchImpl, opts.fallbackKeys ?? [], opts.cacheNowMs ?? Date.now());
   } catch {
     return { valid: false, reason: 'jwks_error' };
   }

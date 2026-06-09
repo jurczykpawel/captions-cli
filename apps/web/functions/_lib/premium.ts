@@ -6,7 +6,7 @@
 // the seller's JWKS (see sellf-license.ts). No KV, no minted keys, no webhook.
 import assets from '../_premium-assets.json';
 
-export { verifySellfToken, parseClaims, type Claims, type VerifyResult } from './sellf-license';
+export { verifySellfToken, parseClaims, parseJwksJson, type Claims, type VerifyResult } from './sellf-license';
 export { allowedTiers, presetsForTier } from './tiers';
 
 export function json(data: unknown, status = 200): Response {
@@ -34,6 +34,12 @@ export interface Env {
   PREMIUM_BUCKET: { get(key: string): Promise<{ body: ReadableStream } | null> };
   /** Sellf JWKS endpoint, e.g. https://sellf.techskills.academy/api/licenses/jwks?seller=<id> */
   SELLF_JWKS_URL: string;
+  /**
+   * Optional pinned JWKS snapshot (`{"keys":[{"kid","alg","pem"}]}`) used only
+   * when the live endpoint is unreachable and nothing is cached. Public-key
+   * material — archived in the vault; keep in sync on a real key rotation.
+   */
+  SELLF_JWKS_FALLBACK?: string;
   // ── Token delivery (the Sellf webhook forwards the buyer's license token by email) ──
   /** Per-endpoint webhook signing secret (Pages secret). */
   SELLF_WEBHOOK_SECRET: string;
