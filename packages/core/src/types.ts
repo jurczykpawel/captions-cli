@@ -39,12 +39,15 @@ export interface EngineRenderInput {
   outputPath: string;
 }
 
-/** Inputs every preset receives (engine-agnostic colour/size knobs). */
+/** Inputs every preset receives (engine-agnostic colour/size knobs).
+ *  Superset of the shared reelstack CaptionPresetInput so synced presets compile. */
 export interface PresetInput {
   fontColor: string;
   highlightColor: string;
   upcomingColor?: string;
   fontSize: number;
+  /** Background colour for pill/label highlight modes (falls back to highlightColor). */
+  pillColor?: string;
 }
 
 /**

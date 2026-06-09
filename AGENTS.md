@@ -55,6 +55,11 @@ verify via the Docker image (`Dockerfile.full`).
   guard against regressions here.
 - Paid `.ts` files live in `packs/hf/{basic,premium}/` (git-ignored). `install-pack.sh`
   copies them into `engine-hf/src/presets/` and regenerates the index for private images.
+- The pack sources are the shared catalogue in **reelstack-modules** (sibling repo). Run
+  `node scripts/sync-caption-templates.mjs` (honours `REELSTACK_MODULES_DIR`) to mirror its
+  HF caption presets into `packs/hf/` — it wraps each into an `HfPresetDefinition` with a
+  tier + description from the manifest in that script. captions authors no caption look of
+  its own beyond the free `text` baseline.
 
 ## Conventions
 
