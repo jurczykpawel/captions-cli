@@ -13,3 +13,9 @@ SELLF_JWKS_URL = "https://sellf.techskills.academy/api/licenses/jwks?seller=8378
 [[r2_buckets]]
 binding = "PREMIUM_BUCKET"
 bucket_name = "captions-premium"
+
+# Pages secrets (set via `wrangler pages secret put …` from apps/web, NOT committed) —
+# used by /api/sellf-webhook to verify Sellf's signed webhook and email the buyer's
+# license token via SES:
+#   SELLF_WEBHOOK_SECRET   (matches the Sellf webhook endpoint secret)
+#   SES_ACCESS_KEY_ID, SES_SECRET_ACCESS_KEY, SES_REGION, SES_FROM

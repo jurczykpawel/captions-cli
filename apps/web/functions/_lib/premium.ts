@@ -26,11 +26,21 @@ export const PREMIUM_PRESETS = (assets as { presets: PremiumPreset[] }).presets 
 /** R2 object key for the buyer's CLI pack ZIP (premium tier only). */
 export const PREMIUM_ZIP_KEY = 'captions-premium.zip';
 
+/** Sellf product slugs whose tokens this app delivers + unlocks. */
+export const CAPTIONS_SLUGS = new Set(['captions-basic-styles', 'captions-premium-styles']);
+
 /** Minimal binding shapes (avoids pulling @cloudflare/workers-types). */
 export interface Env {
   PREMIUM_BUCKET: { get(key: string): Promise<{ body: ReadableStream } | null> };
   /** Sellf JWKS endpoint, e.g. https://sellf.techskills.academy/api/licenses/jwks?seller=<id> */
   SELLF_JWKS_URL: string;
+  // ── Token delivery (the Sellf webhook forwards the buyer's license token by email) ──
+  /** Per-endpoint webhook signing secret (Pages secret). */
+  SELLF_WEBHOOK_SECRET: string;
+  SES_ACCESS_KEY_ID: string;
+  SES_SECRET_ACCESS_KEY: string;
+  SES_REGION: string;
+  SES_FROM: string;
 }
 
 export type Ctx = { request: Request; env: Env };
