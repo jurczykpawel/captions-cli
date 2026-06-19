@@ -61,6 +61,42 @@ verify via the Docker image (`Dockerfile.full`).
   tier + description from the manifest in that script. captions authors no caption look of
   its own beyond the free `text` baseline.
 
+## Deploy — web app (captions.techskills.academy, CF Pages)
+
+**Deploy is manual and run from a local machine — on purpose. There is no CI/auto-deploy.**
+
+```bash
+# from repo root, with CF creds in the env (token + account id are in Vaultwarden:
+# "Cloudflare API - R2 + Workers" — token has Pages Edit + R2 Edit):
+export CLOUDFLARE_API_TOKEN=…  CLOUDFLARE_ACCOUNT_ID=…
+./scripts/deploy-web.sh
+```
+
+What it does: `install-pack.sh premium` (so basic+premium ship) → `bun run build` →
+upload the premium pack ZIP to R2 (`captions-premium` bucket, streamed by `/api/premium-zip`)
+→ `wrangler pages deploy dist --project-name captions --branch main`. A `trap` restores the
+free-only state on exit, so the tree never sits in a leaky state.
+
+**Why manual, not CI:** the paid packs (`packs/hf/{basic,premium}`, `_premium-assets.json`)
+are git-ignored and come from the private **reelstack-modules** sibling repo (see Preset packs
+above). A GitHub Actions checkout has no packs, so `build-premium-pack.mjs` emits empty stubs —
+CI would ship a **free-only build with broken premium** (no premium presets, empty ZIP). So
+`.github/workflows/ci.yml` only type-checks / tests / builds the free pack and **never deploys**;
+deploy must run where `packs/` is present. If the packs are stale, refresh them first:
+`node scripts/sync-caption-templates.mjs && ./scripts/install-pack.sh premium`.
+(Automating this would need CI to fetch reelstack-modules via a deploy key — a `workflow_dispatch`
+manual-trigger is the safe option if ever wanted; on-push auto-deploy to a license-gated product
+is deliberately avoided.)
+
+**Prod-only CF secrets** (set once with `wrangler pages secret put … --project-name captions`,
+persist across deploys, never in the repo; values in Vaultwarden): `SELLF_WEBHOOK_SECRET`
+(verifies the Sellf webhook `t=,v1=` HMAC), `SELLF_JWKS_FALLBACK` (pinned public JWKS snapshot,
+"Captions — Sellf License JWKS (public)"), `SES_*` (token-delivery email). `SELLF_JWKS_URL` is a
+public `[vars]` in `wrangler.toml`. A secret change only binds on the **next deploy**.
+
+**Post-deploy sanity:** site returns 200; `POST /api/premium` with a junk token returns **403**
+(not 500 — proves JWKS verification path is alive); the bundle contains the `loadedBasic` string.
+
 ## Conventions
 
 - Comments only where the *why* is non-obvious; no narration of *what* the code does.
