@@ -121,6 +121,7 @@ export const en: Dict = {
     brand: 'TechSkills Academy',
     tos: 'Terms',
     privacy: 'Privacy',
+    cookies: 'Cookies',
     source: 'Source on GitHub',
     tools: 'Tools',
     openSource: 'Open source',

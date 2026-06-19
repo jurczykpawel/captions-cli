@@ -80,7 +80,7 @@ export interface Dict {
     error: string;
   };
   cli: { heading: string; body: string; cta: string };
-  footer: { tagline: string; madeBy: string; brand: string; tos: string; privacy: string; source: string; tools: string; openSource: string };
+  footer: { tagline: string; madeBy: string; brand: string; tos: string; privacy: string; cookies: string; source: string; tools: string; openSource: string };
   legal: { privacyTitle: string; termsTitle: string; back: string };
 }
 

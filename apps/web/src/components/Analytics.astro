@@ -1,0 +1,45 @@
+---
+/**
+ * Analytics.astro — head portion of privacy-first analytics for the captions landing.
+ *
+ * Build-time configured (static CF Pages site): IDs come from PUBLIC_* env vars via
+ * import.meta.env and are baked into an inline config global. If unset (e.g. local build
+ * without .env), nothing tracks and no banner appears — build stays green.
+ *
+ * Emits the config global (window.__captions_analytics__) + GTM Consent Mode V2 defaults
+ * (everything denied) BEFORE anything loads. The matching <AnalyticsConsent /> goes at the top
+ * of <body> and wires the consent manager + Umami gating.
+ *
+ * Stack (lighter variant): Umami (cookieless, self-hosted) loaded only after analytics consent;
+ * GTM web container for server-side GA4; Consent Mode V2 update on consent. No Meta Pixel.
+ */
+const gtmId = import.meta.env.PUBLIC_GTM_ID ?? "";
+const umamiId = import.meta.env.PUBLIC_UMAMI_WEBSITE_ID ?? "";
+const umamiSrc = import.meta.env.PUBLIC_UMAMI_SRC ?? "https://stats.techskills.academy/script.js";
+---
+
+<script is:inline set:html={`
+  window.__captions_analytics__ = ${JSON.stringify({ gtmId, umamiId, umamiSrc })};
+  // GTM Consent Mode V2 defaults (everything denied until the visitor opts in). Set before
+  // GTM loads; the consent manager calls gtm.js only after analytics consent.
+  (function () {
+    var cfg = window.__captions_analytics__ || {};
+    if (!cfg.gtmId) return;
+    var w = window;
+    w.dataLayer = w.dataLayer || [];
+    function gtag() { w.dataLayer.push(arguments); }
+    w.gtag = gtag;
+    gtag("consent", "default", {
+      ad_storage: "denied",
+      ad_user_data: "denied",
+      ad_personalization: "denied",
+      analytics_storage: "denied",
+      functionality_storage: "granted",
+      personalization_storage: "denied",
+      security_storage: "granted",
+      wait_for_update: 500,
+    });
+    w.dataLayer.push({ source_brand: "captions" });
+    w.__captions_gtm_id = cfg.gtmId;
+  })();
+`} />

@@ -1,6 +1,8 @@
 ---
 import '../styles/tokens.css';
 import { getDict, localePath, type Locale } from '../i18n';
+import Analytics from '../components/Analytics.astro';
+import AnalyticsConsent from '../components/AnalyticsConsent.astro';
 
 interface Props {
   locale: Locale;
@@ -22,8 +24,10 @@ const other: Locale = locale === 'en' ? 'pl' : 'en';
     <meta property="og:description" content={t.meta.description} />
     <meta name="theme-color" content="#0b0d10" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <Analytics />
   </head>
   <body>
+    <AnalyticsConsent />
     <header class="site-header">
       <div class="container site-header__inner">
         <a class="brand" href={localePath(locale)}>
@@ -46,6 +50,7 @@ const other: Locale = locale === 'en' ? 'pl' : 'en';
         <span class="footer-links">
           <a href={localePath(locale, 'terms')}>{t.footer.tos}</a>
           <a href={localePath(locale, 'privacy')}>{t.footer.privacy}</a>
+          <a href="#cookie-preferences" data-cc="show-preferences">{t.footer.cookies}</a>
           <a href="https://github.com/jurczykpawel/captions-cli" rel="noopener">{t.footer.source}</a>
           <a href="https://techskills.academy/narzedzia">{t.footer.tools}</a>
           <a href="https://techskills.academy/#ekosystem">{t.footer.openSource}</a>

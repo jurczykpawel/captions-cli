@@ -1,0 +1,120 @@
+---
+/**
+ * AnalyticsConsent.astro — body portion of privacy-first analytics for the captions landing.
+ *
+ * Goes at the top of <body> (after <Analytics /> in <head> publishes the config global +
+ * Consent Mode defaults). This processed (bundled) module:
+ *   - loads Umami (cookieless) only after analytics consent,
+ *   - lazy-loads the vanilla-cookieconsent manager (banner + footer "Cookies" link),
+ *   - reacts to consent changes pushed onto dataLayer by the consent manager.
+ *
+ * Rendered unconditionally so Astro reliably hoists + bundles the dynamic import chunk.
+ */
+---
+
+<script>
+  interface AnalyticsCfg {
+    gtmId?: string;
+    umamiId?: string;
+    umamiSrc?: string;
+  }
+  const w = window as Window & {
+    __captions_analytics__?: AnalyticsCfg;
+    dataLayer?: unknown[];
+    requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => void;
+  };
+  const cfg: AnalyticsCfg = w.__captions_analytics__ || {};
+
+  // Umami (cookieless) — load only after analytics consent is granted.
+  let umamiLoaded = false;
+  const loadUmami = () => {
+    if (umamiLoaded || !cfg.umamiId) return;
+    umamiLoaded = true;
+    const s = document.createElement("script");
+    s.defer = true;
+    s.src = cfg.umamiSrc || "https://stats.techskills.academy/script.js";
+    s.setAttribute("data-website-id", cfg.umamiId);
+    s.setAttribute("data-domains", "captions.techskills.academy");
+    document.head.appendChild(s);
+  };
+  const hasAnalyticsConsent = () => {
+    try {
+      const raw = localStorage.getItem("captions_cc_v1");
+      if (!raw) return false;
+      const cats = JSON.parse(raw);
+      return Array.isArray(cats) && cats.includes("analytics");
+    } catch {
+      return false;
+    }
+  };
+  if (hasAnalyticsConsent()) loadUmami();
+
+  // React to consent changes pushed onto dataLayer by the consent manager.
+  w.dataLayer = w.dataLayer || [];
+  const dl = w.dataLayer as unknown[] & { push: (o: unknown) => number };
+  const origPush = dl.push.bind(dl);
+  dl.push = (obj: unknown) => {
+    const o = obj as { event?: string; cookie_categories?: unknown };
+    if (
+      o &&
+      o.event === "cookieconsent_change" &&
+      Array.isArray(o.cookie_categories) &&
+      (o.cookie_categories as string[]).includes("analytics")
+    ) {
+      loadUmami();
+    }
+    return origPush(obj);
+  };
+
+  // Consent manager: needed when GTM or Umami is configured. Also powers the footer
+  // "Cookies" link (data-cc="show-preferences").
+  if (cfg.gtmId || cfg.umamiId) {
+    let loaded: Promise<typeof import("../lib/cookieconsent-init")> | null = null;
+    const loadCC = () => {
+      if (!loaded) {
+        loaded = import("../lib/cookieconsent-init").then(async (mod) => {
+          await mod.initCookieConsent();
+          return mod;
+        });
+      }
+      return loaded;
+    };
+    const hasConsent = () => {
+      if (document.cookie.includes("captions_consent=")) return true;
+      try {
+        return !!localStorage.getItem("captions_cc_v1");
+      } catch {
+        return false;
+      }
+    };
+    const ric = w.requestIdleCallback;
+    const scheduleCC = () => {
+      if (hasConsent()) {
+        loadCC();
+      } else if (typeof ric === "function") {
+        ric(loadCC, { timeout: 10000 });
+      } else {
+        window.setTimeout(loadCC, 4000);
+      }
+    };
+    if (document.readyState === "complete") {
+      scheduleCC();
+    } else {
+      window.addEventListener("load", scheduleCC, { once: true });
+    }
+    document.addEventListener(
+      "click",
+      (e) => {
+        const t =
+          e.target instanceof Element
+            ? e.target.closest('[data-cc="show-preferences"], a[href="#cookie-preferences"]')
+            : null;
+        if (t) {
+          e.preventDefault();
+          loadCC().then((mod) => mod.showCookiePreferences());
+        }
+      },
+      { capture: true },
+    );
+  }
+</script>
