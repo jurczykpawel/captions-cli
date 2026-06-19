@@ -20,6 +20,7 @@ COPY package.json bun.lock ./
 COPY packages/core/package.json ./packages/core/
 COPY packages/engine-hf/package.json ./packages/engine-hf/
 COPY packages/cli/package.json ./packages/cli/
+COPY apps/web/package.json ./apps/web/
 RUN bun install --frozen-lockfile
 COPY . .
 RUN cd packages/cli && bun build ./bin/captions-cli.ts --compile --outfile=/app/dist/captions

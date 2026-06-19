@@ -21,6 +21,8 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
+      - name: Generate premium asset stubs (no premium packs -> empty stubs)
+        run: bun scripts/build-premium-pack.mjs
       - name: Type check
         run: bun run typecheck
       - name: Unit tests
