@@ -385,6 +385,13 @@ dimmed grey and "fill in" as they're hit.
 | Render takes minutes on first HF run | Hyperframes downloads Chromium (~150 MB). Subsequent fast. |
 | Polish diacritics garbled | Default `ggml-base.bin` handles Polish; if still wrong, try `ggml-large-v3-turbo.bin` |
 
+## Support
+
+captions-cli burns captions locally, so nobody charges you per minute of video. If it
+saved you a captions subscription, it's taco time:
+
+[![🌮 Buy me a taco](https://img.shields.io/badge/🌮_Buy_me_a_taco-FFDD00)](https://sellf.techskills.academy/checkout/tip-captions-cli?utm_source=github&utm_medium=readme&utm_campaign=tip-jar)
+
 ## License
 
 MIT. Built on top of:
