@@ -1,17 +1,61 @@
 version: 2
-# No JS package-manager version-updates: this is a Bun workspaces monorepo,
-# and Dependabot's npm ecosystem doesn't update bun.lock (PRs then fail CI's
-# `bun install --frozen-lockfile`), while its `bun` ecosystem still skips the
-# lockfile in workspace repos (dependabot/dependabot-core#14223). The few JS
-# deps (typescript, @types/bun, pinned hyperframes) are updated by hand;
-# Dependabot security alerts cover vulnerabilities independently of this file.
 updates:
-  - package-ecosystem: github-actions
-    directory: "/"
-    schedule:
-      interval: weekly
-
-  - package-ecosystem: docker
-    directory: "/"
-    schedule:
-      interval: weekly
+- package-ecosystem: bun
+  directory: /
+  schedule:
+    interval: monthly
+    time: '10:00'
+    timezone: Europe/Warsaw
+  open-pull-requests-limit: 1
+  cooldown:
+    default-days: 14
+  allow:
+  - dependency-name: '*'
+    update-types:
+    - version-update:semver-patch
+    - version-update:semver-minor
+  groups:
+    maintenance:
+      patterns:
+      - '*'
+    security:
+      applies-to: security-updates
+      patterns:
+      - '*'
+- package-ecosystem: github-actions
+  directory: /
+  schedule:
+    interval: quarterly
+    time: '10:00'
+    timezone: Europe/Warsaw
+  open-pull-requests-limit: 1
+  cooldown:
+    default-days: 14
+  groups:
+    actions:
+      patterns:
+      - '*'
+    security:
+      applies-to: security-updates
+      patterns:
+      - '*'
+- package-ecosystem: docker
+  directory: /
+  schedule:
+    interval: monthly
+    time: '10:00'
+    timezone: Europe/Warsaw
+  open-pull-requests-limit: 1
+  cooldown:
+    default-days: 14
+  groups:
+    images:
+      patterns:
+      - '*'
+  ignore:
+  - dependency-name: node
+    versions:
+    - '>=23'
+  - dependency-name: oven/bun
+    versions:
+    - '>=2'
