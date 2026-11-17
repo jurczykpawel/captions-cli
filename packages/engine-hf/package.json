@@ -11,6 +11,6 @@
   },
   "dependencies": {
     "@captions-cli/core": "workspace:*",
-    "hyperframes": "^0.6.52"
+    "hyperframes": "^0.9.9"
   }
 }
